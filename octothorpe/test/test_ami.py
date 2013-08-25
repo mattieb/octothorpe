@@ -233,11 +233,19 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
         )
 
 
+class TestAMIProtocol(AMIProtocol):
+    """Test implementation of an AMIProtocol"""
+
+    def newChannel(self, name, channel):
+        self.test_channelName = name
+        self.test_channel = channel
+
+
 class AMIProtocolTestCase(unittest.TestCase):
     """Test case for the AMI protocol"""
 
     def setUp(self):
-        self.protocol = AMIProtocol()
+        self.protocol = TestAMIProtocol()
         self.transport = proto_helpers.StringTransport()
         self.protocol.makeConnection(self.transport)
 
@@ -293,6 +301,46 @@ class AMIProtocolTestCase(unittest.TestCase):
         )
         self.assertFailure(d, ActionException)
         return d
+
+
+    def test_newChannel(self):
+        """Creation of a new channel"""
+
+        self.protocol.started = True
+        self.protocol.dataReceived(
+            'Event: Newchannel\r\n'
+            'AccountCode: 123\r\n'
+            'CallerIDName: Foo\r\n'
+            'CallerIDNum: 201\r\n'
+            'Channel: Foo/202-0\r\n'
+            'ChannelState: 0\r\n'
+            'ChannelStateDesc: Down\r\n'
+            'Context: default\r\n'
+            'Exten: \r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        self.assertEqual(self.protocol.test_channelName, 'Foo/202-0')
+        self.assertEqual(
+            self.protocol.test_channel.params,
+            {
+                'accountcode': '123',
+                'calleridname': 'Foo',
+                'calleridnum': '201',
+                'channel': 'Foo/202-0',
+                'channelstate': 0,
+                'channelstatedesc': 'Down',
+                'context': 'default',
+                'exten': '',
+                'uniqueid': '1234567890.0'
+            }
+        )
+        self.assertIn('Foo/202-0', self.protocol.channels)
+        self.assertIs(
+            self.protocol.channels['Foo/202-0'],
+            self.protocol.test_channel
+        )
+        self.assertIs(self.protocol.test_channel.protocol, self.protocol)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

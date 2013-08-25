@@ -31,6 +31,7 @@ KEY_ACTION = 'action'
 KEY_ACTIONID = 'actionid'
 KEY_AUTHTYPE = 'authtype'
 KEY_CHALLENGE = 'challenge'
+KEY_CHANNELSTATE = 'channelstate'
 KEY_EVENT = 'event'
 KEY_KEY = 'key'
 KEY_RESPONSE = 'response'
@@ -60,6 +61,7 @@ class BaseAMIProtocol(LineOnlyReceiver):
 
     """
     def connectionMade(self):
+        LineOnlyReceiver.connectionMade(self)
         self.started = False
         self.lines = []
         self.pendingActions = {}
@@ -177,8 +179,38 @@ class BaseAMIProtocol(LineOnlyReceiver):
         return d
 
 
+class Channel(object):
+    """Channel object"""
+
+    def __init__(self, protocol, name, newchannelMessage):
+        """Initialize the channel object.
+
+        protocol -- protocol the Newchannel event was received on, used
+        for e.g. actions that need to be sent.
+
+        name -- channel name.
+
+        newchannelMessage - Newchannel event message indicating the
+        creation of the channel.
+
+        """
+        self.protocol = protocol
+        self.name = name
+        self.params = {}
+        for key, value in newchannelMessage.iteritems():
+            if key == KEY_CHANNELSTATE:
+                self.params[key] = int(value)
+            else:
+                self.params[key] = value
+
+
 class AMIProtocol(BaseAMIProtocol):
     """AMI protocol"""
+
+    def connectionMade(self):
+        BaseAMIProtocol.connectionMade(self)
+        self.channels = {}
+
 
     def _cbRespondToLoginChallenge(self, (fields, body), username, secret):
         return self.sendAction(VALUE_LOGIN, {
@@ -194,6 +226,29 @@ class AMIProtocol(BaseAMIProtocol):
         d = self.sendAction(VALUE_CHALLENGE, {KEY_AUTHTYPE: VALUE_MD5})
         d.addCallback(self._cbRespondToLoginChallenge, username, secret)
         return d
+
+
+    def event_Newchannel(self, message):
+        """Handle a Newchannel event.
+
+        This method will create a new Channel object and call our
+        newChannel method with the channel name and object.
+
+        """
+        name = message['channel']
+        self.channels[name] = channel = Channel(self, name, message)
+        self.newChannel(name, channel)
+
+
+    def newChannel(self, name, channel):
+        """A new channel has been created.
+
+        name -- channel name
+
+        channel -- Channel object representing the current state of the
+        channel
+
+        """
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
