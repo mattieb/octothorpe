@@ -15,6 +15,7 @@
 
 from hashlib import md5
 
+from mock import Mock
 from twisted.python import log
 from twisted.trial import unittest
 from twisted.test import proto_helpers
@@ -76,18 +77,11 @@ class DisassembleMessageTestCase(unittest.TestCase):
         self.assertRaises(ValueError, disassembleMessage, data)
 
 
-class TestBaseAMIProtocol(BaseAMIProtocol):
-    """Test implementation of BaseAMIProtocol"""
-
-    def event_Foo(self, fields):
-        self.test_fooFields = fields
-
-
 class BaseAMIProtocolTestCase(unittest.TestCase):
     """Test case for the base AMI protocol"""
 
     def setUp(self):
-        self.protocol = TestBaseAMIProtocol()
+        self.protocol = BaseAMIProtocol()
         self.transport = proto_helpers.StringTransport()
         self.protocol.makeConnection(self.transport)
 
@@ -114,6 +108,7 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
     def test_eventReceived(self):
         """Receive an event"""
 
+        self.protocol.event_Foo = Mock()
         self.protocol.started = True
         self.protocol.dataReceived(
             'Event: Foo\r\n'
@@ -121,8 +116,7 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
             'Key2: Value2\r\n'
             '\r\n'
         )
-        self.assertEqual(
-            self.protocol.test_fooFields,
+        self.protocol.event_Foo.assert_called_once_with(
             {'key': 'Value', 'key2': 'Value2'}
         )
 
@@ -233,19 +227,11 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
         )
 
 
-class TestAMIProtocol(AMIProtocol):
-    """Test implementation of an AMIProtocol"""
-
-    def newChannel(self, name, channel):
-        self.test_channelName = name
-        self.test_channel = channel
-
-
 class AMIProtocolTestCase(unittest.TestCase):
     """Test case for the AMI protocol"""
 
     def setUp(self):
-        self.protocol = TestAMIProtocol()
+        self.protocol = AMIProtocol()
         self.transport = proto_helpers.StringTransport()
         self.protocol.makeConnection(self.transport)
 
@@ -307,6 +293,7 @@ class AMIProtocolTestCase(unittest.TestCase):
         """Creation of a new channel"""
 
         self.protocol.started = True
+        self.protocol.newChannel = Mock()
         self.protocol.dataReceived(
             'Event: Newchannel\r\n'
             'AccountCode: 123\r\n'
@@ -320,9 +307,10 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
-        self.assertEqual(self.protocol.test_channelName, 'Foo/202-0')
+        call, args, kwargs = self.protocol.newChannel.mock_calls[0]
+        self.assertEqual(args[0], 'Foo/202-0')
         self.assertEqual(
-            self.protocol.test_channel.params,
+            args[1].params,
             {
                 'accountcode': '123',
                 'calleridname': 'Foo',
@@ -336,11 +324,8 @@ class AMIProtocolTestCase(unittest.TestCase):
             }
         )
         self.assertIn('Foo/202-0', self.protocol.channels)
-        self.assertIs(
-            self.protocol.channels['Foo/202-0'],
-            self.protocol.test_channel
-        )
-        self.assertIs(self.protocol.test_channel.protocol, self.protocol)
+        self.assertIs(self.protocol.channels['Foo/202-0'], args[1])
+        self.assertIs(args[1].protocol, self.protocol)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
