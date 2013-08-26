@@ -202,10 +202,30 @@ class Channel(object):
                 self.params[key] = int(value)
             else:
                 self.params[key] = value
+        self.variables = {}
+
+
+    def event_VarSet(self, message):
+        """Handle a VarSet event.
+
+        Sets the appropriate variable in the variables dict and calls
+        our variableSet method.
+
+        """
+        variable = message['variable']
+        self.variables[variable] = value = message['value']
+        self.variableSet(variable, value)
+
+
+    def variableSet(self, variable, value):
+        """Called when a channel variable is set."""
 
 
 class AMIProtocol(BaseAMIProtocol):
     """AMI protocol"""
+
+    channelClass = Channel
+
 
     def connectionMade(self):
         BaseAMIProtocol.connectionMade(self)
@@ -231,12 +251,13 @@ class AMIProtocol(BaseAMIProtocol):
     def event_Newchannel(self, message):
         """Handle a Newchannel event.
 
-        This method will create a new Channel object and call our
+        This method will create a new object of class specified by our
+        channelClass attribute (default Channel) and call our
         newChannel method with the channel name and object.
 
         """
         name = message['channel']
-        self.channels[name] = channel = Channel(self, name, message)
+        self.channels[name] = channel = self.channelClass(self, name, message)
         self.newChannel(name, channel)
 
 
@@ -245,10 +266,28 @@ class AMIProtocol(BaseAMIProtocol):
 
         name -- channel name
 
-        channel -- Channel object representing the current state of the
+        channel -- channel object representing the current state of the
         channel
 
         """
+
+
+    def _passEventToChannel(self, event, message):
+        """Pass an event to a channel."""
+
+        channel = self.channels[message['channel']]
+        handler = getattr(channel, 'event_' + event)
+        handler(message)
+
+
+    def event_VarSet(self, message):
+        """Handle a VarSet event.
+
+        This method will locate the appropriate channel and call its
+        event handler.
+
+        """
+        self._passEventToChannel('VarSet', message)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

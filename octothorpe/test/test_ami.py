@@ -20,7 +20,7 @@ from twisted.python import log
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 
-from octothorpe.ami import BaseAMIProtocol, AMIProtocol
+from octothorpe.ami import BaseAMIProtocol, AMIProtocol, Channel
 from octothorpe.ami import ActionException, ProtocolError
 
 
@@ -289,6 +289,28 @@ class AMIProtocolTestCase(unittest.TestCase):
         return d
 
 
+    def test_channelClass(self):
+        """Use of channelClass to spawn a custom class"""
+
+        class TestChannel(Channel):
+            pass
+
+        class TestAMIProtocol(AMIProtocol):
+            channelClass = TestChannel
+            def newChannel(self, name, channel):
+                assert isinstance(channel, TestChannel)
+
+        self.protocol = TestAMIProtocol()
+        self.protocol.makeConnection(self.transport)
+        self.protocol.started = True
+        self.protocol.dataReceived(
+            'Event: Newchannel\r\n'
+            'Channel: Foo/201-0\r\n'
+            '\r\n'
+        )
+        self.assertIn('Foo/201-0', self.protocol.channels)
+
+
     def test_newChannel(self):
         """Creation of a new channel"""
 
@@ -326,6 +348,47 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertIn('Foo/202-0', self.protocol.channels)
         self.assertIs(self.protocol.channels['Foo/202-0'], args[1])
         self.assertIs(args[1].protocol, self.protocol)
+
+
+    def _startAndSpawnChannel(self):
+        """Helper to start the protocol and spawn a channel"""
+
+        self.protocol.started = True
+        self.protocol.channels['Foo/202-0'] = channel = Channel(
+            self.protocol,
+            'Foo/202-0',
+            {
+                'accountcode': '123',
+                'calleridname': 'Foo',
+                'calleridnum': '201',
+                'channel': 'Foo/202-0',
+                'channelstate': '0',
+                'channelstatedesc': 'Down',
+                'context': 'default',
+                'exten': '',
+                'uniqueid': '1234567890.0'
+            }
+        )
+        return channel
+
+
+    def test_variableSet(self):
+        """Set a channel variable"""
+
+        channel = self._startAndSpawnChannel()
+        channel.variableSet = Mock()
+        self.protocol.dataReceived(
+            'Event: VarSet\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Variable: BAR\r\n'
+            'Value: BAZ\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        call, args, kwargs = channel.variableSet.mock_calls[0]
+        self.assertEqual(args, ('BAR', 'BAZ'))
+        self.assertIn('BAR', channel.variables)
+        self.assertEqual(channel.variables['BAR'], 'BAZ')
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
