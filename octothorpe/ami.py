@@ -221,6 +221,21 @@ class Channel(object):
         """Called when a channel variable is set."""
 
 
+    def event_Hangup(self, message):
+        """Handle a Hangup event.
+
+        Calls our hangup method, then deletes the channel from the
+        protocol's channels dict.
+
+        """
+        self.hangup(int(message['cause']), message['cause-txt'])
+        del self.protocol.channels[self.name]
+
+
+    def hangup(self, cause, causeText):
+        """Called when a channel is hung up."""
+
+
 class AMIProtocol(BaseAMIProtocol):
     """AMI protocol"""
 
@@ -283,11 +298,19 @@ class AMIProtocol(BaseAMIProtocol):
     def event_VarSet(self, message):
         """Handle a VarSet event.
 
-        This method will locate the appropriate channel and call its
-        event handler.
+        The event is passed to the channel.
 
         """
         self._passEventToChannel('VarSet', message)
+
+
+    def event_Hangup(self, message):
+        """Handle a Hangup event.
+        
+        The event is passed to the channel.
+        
+        """
+        self._passEventToChannel('Hangup', message)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

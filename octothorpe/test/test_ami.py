@@ -334,7 +334,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
-        call, args, kwargs = self.protocol.newChannel.mock_calls[0]
+        name, args, kwargs = self.protocol.newChannel.mock_calls[0]
         self.assertEqual(args[0], 'Foo/202-0')
         self.assertEqual(
             args[1].params,
@@ -390,10 +390,33 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
-        call, args, kwargs = channel.variableSet.mock_calls[0]
+        name, args, kwargs = channel.variableSet.mock_calls[0]
         self.assertEqual(args, ('BAR', 'BAZ'))
         self.assertIn('BAR', channel.variables)
         self.assertEqual(channel.variables['BAR'], 'BAZ')
+
+
+    def test_hangup(self):
+        """Channel hung up"""
+
+        channel = self._startAndSpawnChannel()
+        channel.hangup = Mock()
+        self.protocol.dataReceived(
+            'Event: Hangup\r\n'
+            'AccountCode: 123\r\n'
+            'CallerIDName: <unknown>\r\n'
+            'CallerIDNum: 201\r\n'
+            'Cause: 17\r\n'
+            'Cause-Txt: User busy\r\n'
+            'Channel: Foo/202-0\r\n'
+            'ConnectedLineName: <unknown>\r\n'
+            'ConnectedLineNum: <unknown>\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        name, args, kwargs = channel.hangup.mock_calls[0]
+        self.assertEqual(args, (17, 'User busy'))
+        self.assertNotIn('Foo/202-0', self.protocol.channels)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
