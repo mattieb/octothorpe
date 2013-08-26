@@ -24,27 +24,6 @@ from twisted.python import log
 """Asterisk Manager Interface support"""
 
 
-AMI_BANNER_START = 'Asterisk Call Manager/'
-END_COMMAND = '--END COMMAND--'
-
-KEY_ACTION = 'action'
-KEY_ACTIONID = 'actionid'
-KEY_AUTHTYPE = 'authtype'
-KEY_CHALLENGE = 'challenge'
-KEY_CHANNELSTATE = 'channelstate'
-KEY_EVENT = 'event'
-KEY_KEY = 'key'
-KEY_RESPONSE = 'response'
-KEY_USERNAME = 'username'
-
-VALUE_CHALLENGE = 'Challenge'
-VALUE_ERROR = 'Error'
-VALUE_FOLLOWS = 'Follows'
-VALUE_LOGIN = 'Login'
-VALUE_MD5 = 'MD5'
-VALUE_SUCCESS = 'Success'
-
-
 class ActionException(Exception):
     """Error response to an action received"""
 
@@ -69,7 +48,7 @@ class BaseAMIProtocol(LineOnlyReceiver):
 
     def lineReceived(self, line):
         if not self.started:
-            if not line.startswith(AMI_BANNER_START):
+            if not line.startswith('Asterisk Call Manager/'):
                 raise ProtocolError('unknown banner: %r' % (line,))
             self.bannerReceived(line)
 
@@ -81,11 +60,11 @@ class BaseAMIProtocol(LineOnlyReceiver):
             message = {}
             body = None
             for line in self.lines:
-                if line.endswith(END_COMMAND):
-                    response = message.get(KEY_RESPONSE)
-                    if response != VALUE_FOLLOWS:
+                if line.endswith('--END COMMAND--'):
+                    response = message.get('response')
+                    if response != 'Follows':
                         raise ProtocolError('body in non-Follows response')
-                    body = line[:-len(END_COMMAND)]
+                    body = line[:-15]
                 else:
                     # Normalize the key by lowercasing, and don't require a
                     # space between the colon and value, since some AMI
@@ -94,12 +73,12 @@ class BaseAMIProtocol(LineOnlyReceiver):
                     message[key.lower()] = value.lstrip()
             self.lines = []
 
-            event = message.pop(KEY_EVENT, None)
+            event = message.pop('event', None)
             if event:
                 self.eventReceived(event, message)
                 return
 
-            response = message.pop(KEY_RESPONSE, None)
+            response = message.pop('response', None)
             if response:
                 self.responseReceived(response, message, body)
                 return
@@ -128,20 +107,20 @@ class BaseAMIProtocol(LineOnlyReceiver):
         ActionException containing the message if an Error response.
 
         """
-        actionid = message.pop(KEY_ACTIONID)
+        actionid = message.pop('actionid')
         try:
             d = self.pendingActions.pop(actionid)
         except KeyError:
             raise ProtocolError('unknown actionid %r' % (actionid,))
-        if response == VALUE_SUCCESS:
+        if response == 'Success':
             if body is not None:
                 raise ProtocolError('body on Success response')
             d.callback((message, None))
-        elif response == VALUE_ERROR:
+        elif response == 'Error':
             if body is not None:
                 raise ProtocolError('body on Error response')
             d.errback(ActionException(message))
-        elif response == VALUE_FOLLOWS:
+        elif response == 'Follows':
             if body is None:
                 raise ProtocolError('no body on Follows response')
             d.callback((message, body))
@@ -170,8 +149,8 @@ class BaseAMIProtocol(LineOnlyReceiver):
         received.
 
         """
-        fields[KEY_ACTION] = actionName
-        fields[KEY_ACTIONID] = actionid = str(uuid1())
+        fields['action'] = actionName
+        fields['actionid'] = actionid = str(uuid1())
         for field in fields:
             self.sendLine(field.lower() + ': ' + fields[field])
         self.sendLine('')
@@ -198,7 +177,7 @@ class Channel(object):
         self.name = name
         self.params = {}
         for key, value in newchannelMessage.iteritems():
-            if key == KEY_CHANNELSTATE:
+            if key == 'channelstate':
                 self.params[key] = int(value)
             else:
                 self.params[key] = value
@@ -248,17 +227,17 @@ class AMIProtocol(BaseAMIProtocol):
 
 
     def _cbRespondToLoginChallenge(self, (fields, body), username, secret):
-        return self.sendAction(VALUE_LOGIN, {
-            KEY_AUTHTYPE: VALUE_MD5,
-            KEY_USERNAME: username,
-            KEY_KEY: md5(fields[KEY_CHALLENGE] + secret).hexdigest()
+        return self.sendAction('Login', {
+            'authtype': 'MD5',
+            'username': username,
+            'key': md5(fields['challenge'] + secret).hexdigest()
         })
 
 
     def loginMD5(self, username, secret):
         """Log in using MD5 challenge-response"""
 
-        d = self.sendAction(VALUE_CHALLENGE, {KEY_AUTHTYPE: VALUE_MD5})
+        d = self.sendAction('Challenge', {'authtype': 'MD5'})
         d.addCallback(self._cbRespondToLoginChallenge, username, secret)
         return d
 
