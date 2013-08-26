@@ -396,11 +396,4 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(channel.variables['BAR'], 'BAZ')
 
 
-    def test_hangup(self):
-        """Channel hangs up"""
-
-        channel = self._startAndSpawnChannel()
-        channel.hangup = Mock()
-
-
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
