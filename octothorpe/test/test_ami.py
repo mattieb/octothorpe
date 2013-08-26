@@ -230,10 +230,16 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
 class AMIProtocolTestCase(unittest.TestCase):
     """Test case for the AMI protocol"""
 
-    def setUp(self):
-        self.protocol = AMIProtocol()
+    def _setUpProtocol(self, cls=AMIProtocol):
+        """Set up the protocol"""
+
+        self.protocol = cls()
         self.transport = proto_helpers.StringTransport()
         self.protocol.makeConnection(self.transport)
+
+
+    def setUp(self):
+        self._setUpProtocol()
 
 
     def _startAndLoginMD5(self):
@@ -300,8 +306,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             def newChannel(self, name, channel):
                 assert isinstance(channel, TestChannel)
 
-        self.protocol = TestAMIProtocol()
-        self.protocol.makeConnection(self.transport)
+        self._setUpProtocol(TestAMIProtocol)
         self.protocol.started = True
         self.protocol.dataReceived(
             'Event: Newchannel\r\n'
@@ -312,7 +317,7 @@ class AMIProtocolTestCase(unittest.TestCase):
 
 
     def test_newChannel(self):
-        """Creation of a new channel"""
+        """New channel created"""
 
         self.protocol.started = True
         self.protocol.newChannel = Mock()
@@ -373,7 +378,7 @@ class AMIProtocolTestCase(unittest.TestCase):
 
 
     def test_variableSet(self):
-        """Set a channel variable"""
+        """Channel variable set"""
 
         channel = self._startAndSpawnChannel()
         channel.variableSet = Mock()
@@ -389,6 +394,13 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(args, ('BAR', 'BAZ'))
         self.assertIn('BAR', channel.variables)
         self.assertEqual(channel.variables['BAR'], 'BAZ')
+
+
+    def test_hangup(self):
+        """Channel hangs up"""
+
+        channel = self._startAndSpawnChannel()
+        channel.hangup = Mock()
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
