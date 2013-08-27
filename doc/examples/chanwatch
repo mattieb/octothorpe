@@ -27,8 +27,16 @@ class WatchedChannel(Channel):
         print '\t(variables=%r)' % (self.variables,)
 
 
-    def hangup(self, cause, causeText):
+    def hungUp(self, cause, causeText):
         print 'channel %r hangup (%r: %r)' % (self.name, cause, causeText)
+
+
+    def renamed(self, oldName, newName):
+        print 'renamed %r to %r' % (oldName, newName)
+
+
+    def extensionEntered(self, *args):
+        print 'extension entered: (%d) %r' % (len(self.extensions), args)
 
 
 class ChannelWatcher(AMIProtocol):

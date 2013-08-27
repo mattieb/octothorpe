@@ -182,6 +182,7 @@ class Channel(object):
             else:
                 self.params[key] = value
         self.variables = {}
+        self.extensions = []
 
 
     def event_VarSet(self, message):
@@ -203,16 +204,57 @@ class Channel(object):
     def event_Hangup(self, message):
         """Handle a Hangup event.
 
-        Calls our hangup method, then deletes the channel from the
+        Calls our hungUp method, then deletes the channel from the
         protocol's channels dict.
 
         """
-        self.hangup(int(message['cause']), message['cause-txt'])
+        self.hungUp(int(message['cause']), message['cause-txt'])
         del self.protocol.channels[self.name]
 
 
-    def hangup(self, cause, causeText):
+    def hungUp(self, cause, causeText):
         """Called when a channel is hung up."""
+
+
+    def event_Rename(self, message):
+        """Handle a Rename event.
+
+	Moves the channel to its new name in the protocol's channels
+	dict, then calls our renamed method.
+
+        """
+        oldName = self.name
+        self.name = message['newname']
+        self.protocol.channels[self.name] = self.protocol.channels.pop(oldName)
+        self.renamed(oldName, self.name)
+
+
+    def renamed(self, oldName, newName):
+        """Called when a channel is renamed."""
+
+
+    def event_Newexten(self, message):
+        """Handle a Newexten event.
+
+        Records the context, extension, priority, application, and
+        application data in our extensions list and passes same to our
+        extensionEntered method.
+
+        """
+        data = (
+            message['context'],
+            message['extension'],
+            int(message['priority']),
+            message['application'],
+            message['appdata']
+        )
+        self.extensions.append(data)
+        self.extensionEntered(*data)
+
+
+    def extensionEntered(self, context, extension, priority, application,
+                         applicationData):
+        """Called when a new context/extension/priority is entered."""
 
 
 class AMIProtocol(BaseAMIProtocol):
@@ -290,6 +332,24 @@ class AMIProtocol(BaseAMIProtocol):
         
         """
         self._passEventToChannel('Hangup', message)
+
+
+    def event_Rename(self, message):
+        """Handle a Rename event.
+
+        This event is passed to the channel.
+        
+        """
+        self._passEventToChannel('Rename', message)
+
+
+    def event_Newexten(self, message):
+        """Handle a Newexten event.
+
+        This event is passed to the channel.
+
+        """
+        self._passEventToChannel('Newexten', message)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

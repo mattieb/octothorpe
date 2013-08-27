@@ -334,6 +334,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
+        self.assertEqual(len(self.protocol.newChannel.mock_calls), 1)
         name, args, kwargs = self.protocol.newChannel.mock_calls[0]
         self.assertEqual(args[0], 'Foo/202-0')
         self.assertEqual(
@@ -390,17 +391,18 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
+        self.assertEqual(len(channel.variableSet.mock_calls), 1)
         name, args, kwargs = channel.variableSet.mock_calls[0]
         self.assertEqual(args, ('BAR', 'BAZ'))
         self.assertIn('BAR', channel.variables)
         self.assertEqual(channel.variables['BAR'], 'BAZ')
 
 
-    def test_hangup(self):
+    def test_hungUp(self):
         """Channel hung up"""
 
         channel = self._startAndSpawnChannel()
-        channel.hangup = Mock()
+        channel.hungUp = Mock()
         self.protocol.dataReceived(
             'Event: Hangup\r\n'
             'AccountCode: 123\r\n'
@@ -414,9 +416,68 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
-        name, args, kwargs = channel.hangup.mock_calls[0]
+        self.assertEqual(len(channel.hungUp.mock_calls), 1)
+        name, args, kwargs = channel.hungUp.mock_calls[0]
         self.assertEqual(args, (17, 'User busy'))
         self.assertNotIn('Foo/202-0', self.protocol.channels)
+
+
+    def test_renamed(self):
+        """Channel was renamed"""
+
+        channel = self._startAndSpawnChannel()
+        channel.renamed = Mock()
+        self.protocol.dataReceived(
+            'Event: Rename\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Newname: Bar/303-0\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(channel.renamed.mock_calls), 1)
+        name, args, kwargs = channel.renamed.mock_calls[0]
+        self.assertEqual(args, ('Foo/202-0', 'Bar/303-0'))
+        self.assertEqual(channel.name, 'Bar/303-0')
+        self.assertNotIn('Foo/202-0', self.protocol.channels)
+        self.assertIs(self.protocol.channels['Bar/303-0'], channel)
+
+
+    def test_extensionEntered(self):
+        """Channel enters a new context/extension/priority"""
+
+        channel = self._startAndSpawnChannel()
+        channel.extensionEntered = Mock()
+        self.protocol.dataReceived(
+            'Event: Newexten\r\n'
+            'Application: Playback\r\n'
+            'AppData: hello-world\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Context: default\r\n'
+            'Extension: 202\r\n'
+            'Priority: 3\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(channel.extensionEntered.mock_calls), 1)
+        name, args, kwargs = channel.extensionEntered.mock_calls[0]
+        self.assertEqual(args, ('default', '202', 3, 'Playback', 'hello-world'))
+        firstArgs = args
+        self.assertEqual(channel.extensions, [firstArgs])
+        self.protocol.dataReceived(
+            'Event: Newexten\r\n'
+            'Application: Dial\r\n'
+            'AppData: Bar/303\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Context: default\r\n'
+            'Extension: 202\r\n'
+            'Priority: 4\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(channel.extensionEntered.mock_calls), 2)
+        name, args, kwargs = channel.extensionEntered.mock_calls[1]
+        self.assertEqual(args, ('default', '202', 4, 'Dial', 'Bar/303'))
+        self.assertEqual(channel.extensions, [firstArgs, args])
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
