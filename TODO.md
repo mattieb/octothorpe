@@ -11,5 +11,4 @@ Minor
 -----
 
 - Move AMIProtocol into its own module
-- Refactor event_XXX methods that pass to channel
 

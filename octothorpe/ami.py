@@ -276,6 +276,25 @@ class AMIProtocol(BaseAMIProtocol):
         })
 
 
+    def eventReceived(self, event, message):
+        """An event was received.
+
+        If the event mentions a Channel, is not Newchannel (which
+	causes the creation of a new Channel object), and an event
+        handler method (e.g. event_Newexten) exists on the named Channel
+        object, it will be dispatched there.  If none of these stars
+        align, we fall back on BaseAMIProtocol behavior.
+
+        """
+        name = message.get('channel')
+        if name and event != 'Newchannel':
+            eventHandler = getattr(self.channels[name], 'event_' + event, None)
+            if eventHandler:
+                eventHandler(message)
+                return
+        BaseAMIProtocol.eventReceived(self, event, message)
+
+
     def loginMD5(self, username, secret):
         """Log in using MD5 challenge-response"""
 
@@ -306,50 +325,6 @@ class AMIProtocol(BaseAMIProtocol):
         channel
 
         """
-
-
-    def _passEventToChannel(self, event, message):
-        """Pass an event to a channel."""
-
-        channel = self.channels[message['channel']]
-        handler = getattr(channel, 'event_' + event)
-        handler(message)
-
-
-    def event_VarSet(self, message):
-        """Handle a VarSet event.
-
-        The event is passed to the channel.
-
-        """
-        self._passEventToChannel('VarSet', message)
-
-
-    def event_Hangup(self, message):
-        """Handle a Hangup event.
-        
-        The event is passed to the channel.
-        
-        """
-        self._passEventToChannel('Hangup', message)
-
-
-    def event_Rename(self, message):
-        """Handle a Rename event.
-
-        This event is passed to the channel.
-        
-        """
-        self._passEventToChannel('Rename', message)
-
-
-    def event_Newexten(self, message):
-        """Handle a Newexten event.
-
-        This event is passed to the channel.
-
-        """
-        self._passEventToChannel('Newexten', message)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
