@@ -58,13 +58,16 @@ class ChannelWatcher(AMIProtocol):
 
 if __name__ == '__main__':
     from twisted.internet import reactor
-    from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
+    from twisted.internet.protocol import ClientFactory
     from twisted.python import log
     from sys import stderr
 
+    class ChannelWatcherFactory(ClientFactory):
+        def buildProtocol(self, addr):
+            return ChannelWatcher('manager', 'secret')
+
     log.startLogging(stderr)
-    endpoint = TCP4ClientEndpoint(reactor, 'localhost', 5038)
-    connectProtocol(endpoint, ChannelWatcher('manager', 'secret'))
+    reactor.connectTCP('localhost', 5038, ChannelWatcherFactory())
     reactor.run()
 
 

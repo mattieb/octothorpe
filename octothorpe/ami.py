@@ -13,7 +13,10 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
-from hashlib import md5
+try:
+    from hashlib import md5
+except ImportError:
+    from md5 import md5
 
 from octothorpe.base import BaseAMIProtocol
 
@@ -149,7 +152,10 @@ class AMIProtocol(BaseAMIProtocol):
         align, we fall back on BaseAMIProtocol behavior.
 
         """
-        name = message.get('channel')
+        if event == 'Rename' and 'oldname' in message:
+            name = message['oldname']
+        else:
+            name = message.get('channel')
         if name and event != 'Newchannel':
             eventHandler = getattr(self.channels[name], 'event_' + event, None)
             if eventHandler:

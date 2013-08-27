@@ -13,7 +13,10 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
-from hashlib import md5
+try:
+    from hashlib import md5
+except ImportError:
+    from md5 import md5
 
 from mock import Mock
 from twisted.trial import unittest
@@ -152,8 +155,8 @@ class AMIProtocolTestCase(unittest.TestCase):
             }
         )
         self.assertIn('Foo/202-0', self.protocol.channels)
-        self.assertIs(self.protocol.channels['Foo/202-0'], args[1])
-        self.assertIs(args[1].protocol, self.protocol)
+        assert self.protocol.channels['Foo/202-0'] is args[1] 
+        assert args[1].protocol is self.protocol 
 
 
     def _startAndSpawnChannel(self):
@@ -239,7 +242,27 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(args, ('Foo/202-0', 'Bar/303-0'))
         self.assertEqual(channel.name, 'Bar/303-0')
         self.assertNotIn('Foo/202-0', self.protocol.channels)
-        self.assertIs(self.protocol.channels['Bar/303-0'], channel)
+        assert self.protocol.channels['Bar/303-0'] is channel
+
+
+    def test_renamedOldSchool(self):
+        """Channel was renamed using an Oldname key"""
+
+        channel = self._startAndSpawnChannel()
+        channel.renamed = Mock()
+        self.protocol.dataReceived(
+            'Event: Rename\r\n'
+            'Oldname: Foo/202-0\r\n'
+            'Newname: Bar/303-0\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(channel.renamed.mock_calls), 1)
+        name, args, kwargs = channel.renamed.mock_calls[0]
+        self.assertEqual(args, ('Foo/202-0', 'Bar/303-0'))
+        self.assertEqual(channel.name, 'Bar/303-0')
+        self.assertNotIn('Foo/202-0', self.protocol.channels)
+        assert self.protocol.channels['Bar/303-0'] is channel
 
 
     def test_extensionEntered(self):

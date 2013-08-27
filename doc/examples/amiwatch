@@ -41,13 +41,16 @@ class AMIWatcher(AMIProtocol):
 
 if __name__ == '__main__':
     from twisted.internet import reactor
-    from twisted.internet.endpoints import TCP4ClientEndpoint, connectProtocol
+    from twisted.internet.protocol import ClientFactory
     from twisted.python import log
     from sys import stderr
 
+    class AMIWatcherFactory(ClientFactory):
+        def buildProtocol(self, addr):
+            return AMIWatcher('manager', 'secret')
+
     log.startLogging(stderr)
-    endpoint = TCP4ClientEndpoint(reactor, 'localhost', 5038)
-    connectProtocol(endpoint, AMIWatcher('manager', 'secret'))
+    reactor.connectTCP('localhost', 5038, AMIWatcherFactory())
     reactor.run()
 
 
