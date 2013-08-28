@@ -303,4 +303,60 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(channel.extensions, [firstArgs, args])
 
 
+    def _spawnAnotherChannel(self):
+        channel2 = Channel(self.protocol, 'Bar/303-0', {})
+        self.protocol.channels['Bar/303-0'] = channel2
+        return channel2
+
+
+    def test_linked(self):
+        """Channel is linked to another channel"""
+
+        channel = self._startAndSpawnChannel()
+        channel.linked = Mock()
+        channel2 = self._spawnAnotherChannel()
+        self.assertEqual(channel.linkedTo, None)
+        self.assertEqual(channel2.linkedTo, None)
+        self.protocol.dataReceived(
+            'Event: Link\r\n'
+            'Channel1: Foo/202-0\r\n'
+            'Channel2: Bar/303-0\r\n'
+            'Uniqueid1: 1234567890.0\r\n'
+            'Uniqueid2: 0987654321.0\r\n'
+            'CallerID1: 202\r\n'
+            'CallerID2: 303\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(channel.linked.mock_calls), 1)
+        name, args, kwargs = channel.linked.mock_calls[0]
+        self.assertEqual(args[0], channel2)
+        self.assertEqual(channel.linkedTo, channel2)
+        self.assertEqual(channel2.linkedTo, channel)
+
+
+    def test_unlinked(self):
+        """Channel is unlinked from another channel"""
+
+        channel = self._startAndSpawnChannel()
+        channel.unlinked = Mock()
+        channel2 = self._spawnAnotherChannel()
+        channel.linkedTo = channel2
+        channel2.linkedTo = channel
+        self.protocol.dataReceived(
+            'Event: Unlink\r\n'
+            'Channel1: Foo/202-0\r\n'
+            'Channel2: Bar/303-0\r\n'
+            'Uniqueid1: 1234567890.0\r\n'
+            'Uniqueid2: 0987654321.0\r\n'
+            'CallerID1: 202\r\n'
+            'CallerID2: 303\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(channel.unlinked.mock_calls), 1)
+        name, args, kwargs = channel.unlinked.mock_calls[0]
+        self.assertEqual(args[0], channel2)
+        self.assertEqual(channel.linkedTo, None)
+        self.assertEqual(channel2.linkedTo, None)
+
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

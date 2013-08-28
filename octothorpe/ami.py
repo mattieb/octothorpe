@@ -18,7 +18,7 @@ try:
 except ImportError:
     from md5 import md5
 
-from octothorpe.base import BaseAMIProtocol
+from octothorpe.base import BaseAMIProtocol, ProtocolError
 
 
 """Higher-level Asterisk Manager Interface protocol"""
@@ -49,6 +49,7 @@ class Channel(object):
                 self.params[key] = value
         self.variables = {}
         self.extensions = []
+        self.linkedTo = None
 
 
     def event_VarSet(self, message):
@@ -123,6 +124,49 @@ class Channel(object):
         """Called when a new context/extension/priority is entered."""
 
 
+    def event_Link(self, message):
+        """Handle a Link event.
+
+        Locates the named channel and sets our linkedTo attribute to
+        it, then calls our linked method with same.
+
+        """
+        if self.linkedTo is not None:
+            raise ProtocolError('Link event while already linked')
+        if message['channel1'] == self.name:
+            otherName = message['channel2']
+        else:
+            otherName = message['channel1']
+        otherChannel = self.protocol.channels[otherName]
+        self.linkedTo = otherChannel
+        self.linked(otherChannel)
+
+
+    def linked(self, otherChannel):
+        """Called when we are linked to another channel."""
+
+
+    def event_Unlink(self, message):
+        """Handle an unlink event.
+
+        Sets our linkedTo attribute to None and calls our unlinked
+        method with the channel we've been unlinked from.
+
+        """
+        if self.linkedTo is None:
+            raise ProtocolError('Unlink event while not linked')
+        if self.linkedTo.name not in (message['channel1'],
+                                      message['channel2']):
+            raise ProtocolError('Unlink event from unknown channel')
+        otherChannel = self.linkedTo
+        self.linkedTo = None
+        self.unlinked(otherChannel)
+
+
+    def unlinked(self, otherChannel):
+        """Called when we are unlinked from another channel."""
+
+
 class AMIProtocol(BaseAMIProtocol):
     """AMI protocol"""
 
@@ -142,26 +186,39 @@ class AMIProtocol(BaseAMIProtocol):
         })
 
 
+
     def eventReceived(self, event, message):
         """An event was received.
 
-        If the event mentions a Channel, is not Newchannel (which
-	causes the creation of a new Channel object), and an event
-        handler method (e.g. event_Newexten) exists on the named Channel
-        object, it will be dispatched there.  If none of these stars
-        align, we fall back on BaseAMIProtocol behavior.
+        If we determine the event is handleable by one or more
+        Channels, we will dispatch the a copy to each Channel that has
+        the appropriate handler method (i.e. event_XXX).  If no such
+        Channel event handlers are found, we fall back on
+        BaseAMIProtocol behavior.
 
         """
-        if event == 'Rename' and 'oldname' in message:
-            name = message['oldname']
+        if 'oldname' in message and event == 'Rename':
+            names = [message['oldname']]
+        elif 'channel' in message and event != 'Newchannel':
+            names = [message['channel']]
+        elif (event in ('Link', 'Unlink') and
+              'channel1' in message and 'channel2' in message):
+            names = [message['channel1'], message['channel2']]            
         else:
-            name = message.get('channel')
-        if name and event != 'Newchannel':
+            names = []
+
+        eventHandlers = []
+        for name in names:
             eventHandler = getattr(self.channels[name], 'event_' + event, None)
             if eventHandler:
+                eventHandlers.append(eventHandler)
+
+        if eventHandlers:
+            for eventHandler in eventHandlers:
                 eventHandler(message)
-                return
-        BaseAMIProtocol.eventReceived(self, event, message)
+        else:
+            BaseAMIProtocol.eventReceived(self, event, message)
+            return
 
 
     def loginMD5(self, username, secret):
