@@ -19,7 +19,8 @@ well as be able to issue actions against.  (Of course, you can
 subclass `Channel`.)
 
 `octothorpe` is fully developed with a test-first methodology.  All
-functionality is covered by the unit tests.
+functionality is covered by the unit tests, which we verify with
+[`coverage.py`][4] (see `COVERAGE.md`).
 
 Requirements
 ------------
@@ -31,4 +32,5 @@ you can run with `trial octothorpe`) additionally require [Mock][3].
 [1]: http://twistedmatrix.com/
 [2]: https://wiki.asterisk.org/wiki/display/AST/The+Asterisk+Manager+TCP+IP+API
 [3]: http://www.voidspace.org.uk/python/mock/
+[4]: http://nedbatchelder.com/code/coverage/
 
