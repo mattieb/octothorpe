@@ -15,7 +15,7 @@
 
 try:
     from hashlib import md5
-except ImportError:
+except ImportError: # pragma: no cover
     from md5 import md5
 
 from octothorpe.base import BaseAMIProtocol, ProtocolError
@@ -132,7 +132,7 @@ class Channel(object):
 
         """
         if self.linkedTo is not None:
-            raise ProtocolError('Link event while already linked')
+            raise ProtocolError('Link while already linked')
         if message['channel1'] == self.name:
             otherName = message['channel2']
         else:
@@ -154,10 +154,10 @@ class Channel(object):
 
         """
         if self.linkedTo is None:
-            raise ProtocolError('Unlink event while not linked')
+            raise ProtocolError('Unlink while not linked')
         if self.linkedTo.name not in (message['channel1'],
                                       message['channel2']):
-            raise ProtocolError('Unlink event from unknown channel')
+            raise ProtocolError('Unlink from channel we are not linked to')
         otherChannel = self.linkedTo
         self.linkedTo = None
         self.unlinked(otherChannel)

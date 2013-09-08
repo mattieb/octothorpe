@@ -102,6 +102,19 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
         self.assertFalse(self.protocol.started)
 
 
+    def test_badMessage(self):
+        """ProtocolError is raised for a bad message"""
+        
+        self.protocol.started = True
+        self.assertRaises(
+            ProtocolError,
+            self.protocol.dataReceived,
+            'Foo: Bar\r\n'
+            'Baz: Quux\r\n'
+            '\r\n'
+        )
+
+
     def test_eventReceived(self):
         """Receive an event"""
 
@@ -187,7 +200,7 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
 
 
     def test_actionBodyOnSuccessIsError(self):
-        """ProtocolError for a Success response with a body"""
+        """ProtocolError for a Follows response with a body"""
 
         d, actionid = self._startAndSendAction()
         self.assertRaises(
@@ -197,10 +210,10 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
             'foo bar\nbaz quux\n--END COMMAND--\r\n'
             '\r\n'
         )
-   
+
 
     def test_actionBodyOnErrorIsError(self):
-        """ProtocolError for a Success response with a body"""
+        """ProtocolError for an Error response with a body"""
 
         d, actionid = self._startAndSendAction()
         self.assertRaises(
@@ -213,12 +226,24 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
 
 
     def test_actionNoBodyOnFollowsIsError(self):
-        """ProtocolError for a Success response with a body"""
+        """ProtocolError for a Follows response without a body"""
 
         d, actionid = self._startAndSendAction()
         self.assertRaises(
             ProtocolError, self.protocol.dataReceived,
             'Response: Follows\r\n'
+            'ActionID: ' + actionid + '\r\n'
+            '\r\n'
+        )
+
+
+    def test_badResponse(self):
+        """ProtocolError for a bad response"""
+
+        d, actionid = self._startAndSendAction()
+        self.assertRaises(
+            ProtocolError, self.protocol.dataReceived,
+            'Response: Foobar\r\n'
             'ActionID: ' + actionid + '\r\n'
             '\r\n'
         )

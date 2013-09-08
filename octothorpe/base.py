@@ -111,12 +111,8 @@ class BaseAMIProtocol(LineOnlyReceiver):
         except KeyError:
             raise ProtocolError('unknown actionid %r' % (actionid,))
         if response == 'Success':
-            if body is not None:
-                raise ProtocolError('body on Success response')
             d.callback((message, None))
         elif response == 'Error':
-            if body is not None:
-                raise ProtocolError('body on Error response')
             d.errback(ActionException(message))
         elif response == 'Follows':
             if body is None:

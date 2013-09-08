@@ -15,7 +15,7 @@
 
 try:
     from hashlib import md5
-except ImportError:
+except ImportError: # pragma: no coverage
     from md5 import md5
 
 from mock import Mock
@@ -23,7 +23,7 @@ from twisted.trial import unittest
 from twisted.test import proto_helpers
 
 from octothorpe.ami import AMIProtocol, Channel
-from octothorpe.base import ActionException
+from octothorpe.base import ActionException, ProtocolError
 from octothorpe.test.test_base import disassembleMessage
 
 
@@ -332,6 +332,18 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(args[0], channel2)
         self.assertEqual(channel.linkedTo, channel2)
         self.assertEqual(channel2.linkedTo, channel)
+        self.assertRaises(
+            ProtocolError,
+            self.protocol.dataReceived,
+            'Event: Link\r\n'
+            'Channel1: Foo/202-0\r\n'
+            'Channel2: Bar/303-0\r\n'
+            'Uniqueid1: 1234567890.0\r\n'
+            'Uniqueid2: 0987654321.0\r\n'
+            'CallerID1: 202\r\n'
+            'CallerID2: 303\r\n'
+            '\r\n'
+        )
 
 
     def test_unlinked(self):
@@ -342,6 +354,20 @@ class AMIProtocolTestCase(unittest.TestCase):
         channel2 = self._spawnAnotherChannel()
         channel.linkedTo = channel2
         channel2.linkedTo = channel
+        channel3 = Channel(self.protocol, 'Baz/404-0', {})
+        self.protocol.channels['Baz/404-0'] = channel3
+        self.assertRaises(
+            ProtocolError,
+            self.protocol.dataReceived,
+            'Event: Unlink\r\n'
+            'Channel1: Foo/202-0\r\n'
+            'Channel2: Baz/404-0\r\n'
+            'Uniqueid1: 1234567890.0\r\n'
+            'Uniqueid2: 0987654321.0\r\n'
+            'CallerID1: 202\r\n'
+            'CallerID2: 303\r\n'
+            '\r\n'
+        )
         self.protocol.dataReceived(
             'Event: Unlink\r\n'
             'Channel1: Foo/202-0\r\n'
@@ -357,6 +383,18 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(args[0], channel2)
         self.assertEqual(channel.linkedTo, None)
         self.assertEqual(channel2.linkedTo, None)
+        self.assertRaises(
+            ProtocolError,
+            self.protocol.dataReceived,
+            'Event: Unlink\r\n'
+            'Channel1: Foo/202-0\r\n'
+            'Channel2: Bar/303-0\r\n'
+            'Uniqueid1: 1234567890.0\r\n'
+            'Uniqueid2: 0987654321.0\r\n'
+            'CallerID1: 202\r\n'
+            'CallerID2: 303\r\n'
+            '\r\n'
+        )
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
