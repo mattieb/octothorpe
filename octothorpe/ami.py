@@ -24,6 +24,9 @@ from octothorpe.base import BaseAMIProtocol, ProtocolError
 """Higher-level Asterisk Manager Interface protocol"""
 
 
+STATE_DOWN = 0
+
+
 class Channel(object):
     """Channel object"""
 
@@ -47,6 +50,7 @@ class Channel(object):
                 self.params[key] = int(value)
             else:
                 self.params[key] = value
+        self.state = self.params['channelstate']
         self.variables = {}
         self.extensions = []
         self.linkedTo = None

@@ -22,7 +22,7 @@ from mock import Mock
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 
-from octothorpe.ami import AMIProtocol, Channel
+from octothorpe.ami import AMIProtocol, Channel, STATE_DOWN
 from octothorpe.base import ActionException, ProtocolError
 from octothorpe.test.test_base import disassembleMessage
 
@@ -114,6 +114,8 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.protocol.dataReceived(
             'Event: Newchannel\r\n'
             'Channel: Foo/201-0\r\n'
+            'ChannelState: 0\r\n'
+            'ChannelStateDesc: Down\r\n'
             '\r\n'
         )
         self.assertIn('Foo/201-0', self.protocol.channels)
@@ -139,9 +141,9 @@ class AMIProtocolTestCase(unittest.TestCase):
         )
         self.assertEqual(len(self.protocol.newChannel.mock_calls), 1)
         name, args, kwargs = self.protocol.newChannel.mock_calls[0]
-        self.assertEqual(args[0], 'Foo/202-0')
-        self.assertEqual(
-            args[1].params,
+        channelName, channel = args
+        self.assertEqual(channelName, 'Foo/202-0')
+        self.assertEqual(channel.params,
             {
                 'accountcode': '123',
                 'calleridname': 'Foo',
@@ -154,9 +156,10 @@ class AMIProtocolTestCase(unittest.TestCase):
                 'uniqueid': '1234567890.0'
             }
         )
+        self.assertEqual(channel.state, STATE_DOWN)
         self.assertIn('Foo/202-0', self.protocol.channels)
-        assert self.protocol.channels['Foo/202-0'] is args[1] 
-        assert args[1].protocol is self.protocol 
+        assert self.protocol.channels['Foo/202-0'] is channel
+        assert channel.protocol is self.protocol 
 
 
     def _startAndSpawnChannel(self):
@@ -303,10 +306,15 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(channel.extensions, [firstArgs, args])
 
 
-    def _spawnAnotherChannel(self):
-        channel2 = Channel(self.protocol, 'Bar/303-0', {})
-        self.protocol.channels['Bar/303-0'] = channel2
-        return channel2
+    def _spawnAnotherChannel(self, name='Bar/303-0'):
+        channel = Channel(self.protocol, name,
+            {
+                'channelstate': 0,
+                'channelstatedesc': 'Down',
+            }
+        )
+        self.protocol.channels[name] = channel
+        return channel
 
 
     def test_linked(self):
@@ -354,8 +362,7 @@ class AMIProtocolTestCase(unittest.TestCase):
         channel2 = self._spawnAnotherChannel()
         channel.linkedTo = channel2
         channel2.linkedTo = channel
-        channel3 = Channel(self.protocol, 'Baz/404-0', {})
-        self.protocol.channels['Baz/404-0'] = channel3
+        channel3 = self._spawnAnotherChannel('Baz/404-0')
         self.assertRaises(
             ProtocolError,
             self.protocol.dataReceived,
