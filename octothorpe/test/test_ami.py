@@ -198,13 +198,32 @@ class AMIProtocolTestCase(unittest.TestCase):
             'ChannelStateDesc: Up\r\n'
             'ConnectedLineName: \r\n'
             'ConnectedLineNum: \r\n'
-            'UniqueId: 1234567890.0\r\n'
+            'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
         channel.newState.assert_called_once_with(6, 'Up')
         self.assertEqual(channel.state, 6)
         self.assertEqual(channel.params['channelstate'], 6)
         self.assertEqual(channel.params['channelstatedesc'], 'Up')
+
+
+    def test_newCallerId(self):
+        """Channel caller ID changed"""
+
+        channel = self._startAndSpawnChannel()
+        channel.newCallerId = Mock()
+        self.protocol.dataReceived(
+            'Event: NewCallerid\r\n'
+            'CallerIDName: John Doe\r\n'
+            'CallerIDNum: 8885551212\r\n'
+            'Channel: Foo/202-0\r\n'
+            'CID-CallingPres: 0 (Presentation Allowed, Not Screened)\r\n'
+            'Uniqueid: 123456789.0\r\n'
+            '\r\n'
+        )
+        channel.newCallerId.assert_called_once_with('8885551212', 'John Doe')
+        self.assertEqual(channel.params['calleridnum'], '8885551212')
+        self.assertEqual(channel.params['calleridname'], 'John Doe')
 
 
     def test_variableSet(self):
