@@ -56,6 +56,22 @@ class Channel(object):
         self.linkedTo = None
 
 
+    def event_Newstate(self, message):
+        """Handle a Newstate event.
+
+        Updates our state and params attributes, and calls our newState
+        method.
+
+        """
+        self.state = self.params['channelstate'] = int(message['channelstate'])
+        desc = self.params['channelstatedesc'] = message['channelstatedesc']
+        self.newState(self.state, desc)
+
+
+    def newState(self, state, desc):
+        """Called when we have a new state."""
+
+
     def event_VarSet(self, message):
         """Handle a VarSet event.
 

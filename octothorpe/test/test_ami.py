@@ -184,6 +184,29 @@ class AMIProtocolTestCase(unittest.TestCase):
         return channel
 
 
+    def test_newState(self):
+        """Channel state changed"""
+
+        channel = self._startAndSpawnChannel()
+        channel.newState = Mock()
+        self.protocol.dataReceived(
+            'Event: Newstate\r\n'
+            'CallerIDName: \r\n'
+            'CallerIDNum: 202\r\n'
+            'Channel: Foo/202-0\r\n'
+            'ChannelState: 6\r\n'
+            'ChannelStateDesc: Up\r\n'
+            'ConnectedLineName: \r\n'
+            'ConnectedLineNum: \r\n'
+            'UniqueId: 1234567890.0\r\n'
+            '\r\n'
+        )
+        channel.newState.assert_called_once_with(6, 'Up')
+        self.assertEqual(channel.state, 6)
+        self.assertEqual(channel.params['channelstate'], 6)
+        self.assertEqual(channel.params['channelstatedesc'], 'Up')
+
+
     def test_variableSet(self):
         """Channel variable set"""
 
@@ -197,9 +220,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
-        self.assertEqual(len(channel.variableSet.mock_calls), 1)
-        name, args, kwargs = channel.variableSet.mock_calls[0]
-        self.assertEqual(args, ('BAR', 'BAZ'))
+        channel.variableSet.assert_called_once_with('BAR', 'BAZ')
         self.assertIn('BAR', channel.variables)
         self.assertEqual(channel.variables['BAR'], 'BAZ')
 
@@ -222,9 +243,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
-        self.assertEqual(len(channel.hungUp.mock_calls), 1)
-        name, args, kwargs = channel.hungUp.mock_calls[0]
-        self.assertEqual(args, (17, 'User busy'))
+        channel.hungUp.assert_called_once_with(17, 'User busy')
         self.assertNotIn('Foo/202-0', self.protocol.channels)
 
 
@@ -240,9 +259,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
-        self.assertEqual(len(channel.renamed.mock_calls), 1)
-        name, args, kwargs = channel.renamed.mock_calls[0]
-        self.assertEqual(args, ('Foo/202-0', 'Bar/303-0'))
+        channel.renamed.assert_called_once_with('Foo/202-0', 'Bar/303-0')
         self.assertEqual(channel.name, 'Bar/303-0')
         self.assertNotIn('Foo/202-0', self.protocol.channels)
         assert self.protocol.channels['Bar/303-0'] is channel
@@ -260,9 +277,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
-        self.assertEqual(len(channel.renamed.mock_calls), 1)
-        name, args, kwargs = channel.renamed.mock_calls[0]
-        self.assertEqual(args, ('Foo/202-0', 'Bar/303-0'))
+        channel.renamed.assert_called_once_with('Foo/202-0', 'Bar/303-0')
         self.assertEqual(channel.name, 'Bar/303-0')
         self.assertNotIn('Foo/202-0', self.protocol.channels)
         assert self.protocol.channels['Bar/303-0'] is channel
@@ -335,9 +350,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'CallerID2: 303\r\n'
             '\r\n'
         )
-        self.assertEqual(len(channel.linked.mock_calls), 1)
-        name, args, kwargs = channel.linked.mock_calls[0]
-        self.assertEqual(args[0], channel2)
+        channel.linked.assert_called_once_with(channel2)
         self.assertEqual(channel.linkedTo, channel2)
         self.assertEqual(channel2.linkedTo, channel)
         self.assertRaises(
@@ -385,9 +398,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'CallerID2: 303\r\n'
             '\r\n'
         )
-        self.assertEqual(len(channel.unlinked.mock_calls), 1)
-        name, args, kwargs = channel.unlinked.mock_calls[0]
-        self.assertEqual(args[0], channel2)
+        channel.unlinked.assert_called_once_with(channel2)
         self.assertEqual(channel.linkedTo, None)
         self.assertEqual(channel2.linkedTo, None)
         self.assertRaises(
