@@ -139,7 +139,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
-        self.assertEqual(len(self.protocol.newChannel.mock_calls), 1)
+        self.protocol.newChannel.assert_called_once()
         name, args, kwargs = self.protocol.newChannel.mock_calls[0]
         channelName, channel = args
         self.assertEqual(channelName, 'Foo/202-0')
