@@ -29,3 +29,6 @@ it also works with what `pip install ansible` gives you today.
 **Even More Important Note:** Don't even *think* of using the config
 files in `etc/asterisk` in production!  They are wildly insecure.
 
+[1]: http://vagrantup.com/
+[2]: http://ansibleworks.com/
+
