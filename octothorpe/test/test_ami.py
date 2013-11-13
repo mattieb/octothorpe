@@ -243,6 +243,26 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(channel.params['channelstatedesc'], 'Up')
 
 
+    def test_newState4(self):
+        """Channel state changed with Asterisk-1.4-era parameters"""
+
+        channel = self._startAndSpawnChannel()
+        channel.newState = Mock()
+        self.protocol.dataReceived(
+            'Event: Newstate\r\n'
+            'Channel: Foo/202-0\r\n'
+            'State: Ring\r\n'
+            'CallerID: 202\r\n'
+            'CallerIDName: \r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        channel.newState.assert_called_once_with(4, 'Ring')
+        self.assertEqual(channel.state, 4)
+        self.assertEqual(channel.params['channelstate'], 4)
+        self.assertEqual(channel.params['channelstatedesc'], 'Ring')
+
+
     def test_newCallerId(self):
         """Channel caller ID changed"""
 

@@ -44,6 +44,13 @@ for state, desc in _states:
 class Channel(object):
     """Channel object"""
 
+    def _synthesizeStateParams(self, desc):
+        """Synthesize channelstate and channelstatedesc in our params."""
+
+        self.state = self.params['channelstate'] = STATES[desc.lower()]
+        self.params['channelstatedesc'] = desc
+
+
     def __init__(self, protocol, name, newchannelMessage):
         """Initialize the channel object.
 
@@ -69,10 +76,7 @@ class Channel(object):
         try:
             self.state = self.params['channelstate']
         except KeyError:
-            # Synthesize state for Asterisk 1.4
-            self.state = STATES[self.params['state'].lower()]
-            self.params['channelstate'] = self.state
-            self.params['channelstatedesc'] = self.params['state']
+            self._synthesizeStateParams(self.params['state'])
 
         self.variables = {}
         self.extensions = []
@@ -86,9 +90,14 @@ class Channel(object):
         method.
 
         """
-        self.state = self.params['channelstate'] = int(message['channelstate'])
-        desc = self.params['channelstatedesc'] = message['channelstatedesc']
-        self.newState(self.state, desc)
+        try:
+            self.params['channelstate'] = int(message['channelstate'])
+            self.params['channelstatedesc'] = message['channelstatedesc']
+        except KeyError:
+            self._synthesizeStateParams(message['state'])
+
+        self.state = self.params['channelstate']
+        self.newState(self.state, self.params['channelstatedesc'])
 
 
     def newState(self, state, desc):
