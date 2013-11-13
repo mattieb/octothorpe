@@ -22,8 +22,9 @@ from mock import Mock
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 
-from octothorpe.ami import AMIProtocol, Channel, STATE_DOWN
+from octothorpe.ami import AMIProtocol
 from octothorpe.base import ActionException, ProtocolError
+from octothorpe.channel import Channel, STATE_DOWN
 from octothorpe.test.test_base import disassembleMessage
 
 
@@ -160,6 +161,41 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertIn('Foo/202-0', self.protocol.channels)
         assert self.protocol.channels['Foo/202-0'] is channel
         assert channel.protocol is self.protocol 
+
+
+    def test_newChannel4(self):
+        """New channel created with 1.4-era State parameter"""
+
+        self.protocol.started = True
+        self.protocol.newChannel = Mock()
+        self.protocol.dataReceived(
+            'Event: Newchannel\r\n'
+            'Channel: Foo/202-0\r\n'
+            'State: Down\r\n'
+            'CallerIDNum: 202\r\n'
+            'CallerIDName: Foo\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        self.protocol.newChannel.assert_called_once()
+        name, args, kwards = self.protocol.newChannel.mock_calls[0]
+        channelName, channel = args
+        self.assertEqual(channelName, 'Foo/202-0')
+        self.assertEqual(channel.params,
+            {
+                'channel': 'Foo/202-0',
+                'channelstate': 0,
+                'channelstatedesc': 'Down',
+                'calleridname': 'Foo',
+                'calleridnum': '202',
+                'state': 'Down',
+                'uniqueid': '1234567890.0'
+            }
+        )
+        self.assertEqual(channel.state, STATE_DOWN)
+        self.assertIn('Foo/202-0', self.protocol.channels)
+        assert self.protocol.channels['Foo/202-0'] is channel
+        assert channel.protocol is self.protocol
 
 
     def _startAndSpawnChannel(self):
