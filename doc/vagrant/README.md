@@ -6,6 +6,12 @@ If you're interested in a virtual environment for hacking on
 configurations for building and doing the initial configuration for
 a box with Asterisk running and ready to accept a SIP phone connection.
 
+You will need a CentOS 6 box to start.  I grabbed the latest
+`CentOS-6.4-x86_64` box from
+http://developer.nrel.gov/downloads/vagrant-boxes/ for this purpose.
+`vagrant add box centos6 http://...` is your friend here, substituting
+the `...` for something useful of course.
+
 Put `Vagrantfile`, `playbook.yml`, and `etc` (containing the Asterisk
 configurations) in the same directory, and run `vagrant up` to start
 your system.  Pay close attention to `Vagrantfile`—it contains a
