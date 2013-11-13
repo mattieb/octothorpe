@@ -26,7 +26,7 @@ Requirements
 ------------
 
 `octothorpe` depends only on Twisted, and is developed against the
-latest release version (currently 13.1.0).  The unit tests (which
+latest release version (currently 13.2.0).  The unit tests (which
 you can run with `trial octothorpe`) additionally require [Mock][3].
 
 [1]: http://twistedmatrix.com/
