@@ -5,21 +5,31 @@
 
   tasks:
 
-    - name: prerequisite for asterisk repository install
-      yum: pkg=dnsmasq state=present
+    ###
 
-    - name: asterisk repository install
-      yum: pkg=http://packages.asterisk.org/centos/6/current/x86_64/RPMS/asterisknow-version-3.0.0-1_centos6.noarch.rpm
+    # Bootstrap repositories installed with RPMs.  Based on an "a-ha!"
+    # moment from <http://stackoverflow.com/a/14155303/722332>.
+
+    - name: bootstrap asterisknow-version install
+      copy: src=ansible-bootstrap-asterisk-current.repo
+            dest=/etc/yum.repos.d/
+            owner=root group=root mode=0644
+
+    - name: asterisknow-version install
+      yum: name=asterisknow-version
+           enablerepo=ansible-bootstrap-asterisk-current
            state=present
 
-    - name: asterisk repository enable
+    ###
+
+    - name: asterisk-11 repository enable
       ini_file: dest=/etc/yum.repos.d/centos-asterisk-11.repo
                 section=asterisk-11
                 option=enabled
                 value=1
 
     - name: asterisk installation
-      yum: pkg=asterisk state=present
+      yum: name=asterisk state=present
 
     ###
 
@@ -48,8 +58,14 @@
     - name: enable asterisk
       service: name=asterisk enabled=yes
 
-    - name: epel repository install
-      yum: pkg=http://mirror.us.leaseweb.net/epel/6/x86_64/epel-release-6-8.noarch.rpm
+    - name: bootstrap epel-release install
+      copy: src=ansible-bootstrap-epel.repo
+            dest=/etc/yum.repos.d/
+            owner=root group=root mode=0644
+
+    - name: epel-release install
+      yum: name=epel-release
+           enablerepo=ansible-bootstrap-epel
            state=present
 
     - name: epel repository restrict

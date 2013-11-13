@@ -1,0 +1,6 @@
+[ansible-bootstrap-asterisk-current]
+name = Ansible bootstrap for asterisk-current
+baseurl = http://packages.asterisk.org/centos/$releasever/current/$basearch/
+enabled = 0
+gpgcheck = 0
+
