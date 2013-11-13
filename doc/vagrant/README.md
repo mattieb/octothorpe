@@ -16,8 +16,8 @@ Put `Vagrantfile`, `playbook.yml`, and `etc` (containing the Asterisk
 configurations) in the same directory, and run `vagrant up` to start
 your system.  Pay close attention to `Vagrantfile`—it contains a
 directive for setting up a host-only network.  I've randomly selected
-an RFC1918 address for this purpose; you'll want to connect your
-local SIP phone here.
+an RFC1918 address for this purpose; you'll want to connect your SIP
+softphone and your `octothorpe` applications to this address.
 
 **Note:** the current Ansible playbook has a bit of hackishness to it,
 as I needed to make use of a feature (replacing a directory with a
