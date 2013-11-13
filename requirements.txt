@@ -1,3 +1,5 @@
-Twisted==13.1.0
+Twisted==13.2.0
 coverage==3.7
 mock==1.0.1
+wsgiref==0.1.2
+zope.interface==4.0.5
