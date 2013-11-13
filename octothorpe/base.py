@@ -73,7 +73,7 @@ class BaseAMIProtocol(LineOnlyReceiver):
 
             event = message.pop('event', None)
             if event:
-                self.eventReceived(event, message)
+                self.eventReceived(event.lower().capitalize(), message)
                 return
 
             response = message.pop('response', None)

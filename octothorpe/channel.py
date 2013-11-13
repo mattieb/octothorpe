@@ -104,7 +104,7 @@ class Channel(object):
         """Called when we have a new state."""
 
 
-    def event_NewCallerid(self, message):
+    def event_Newcallerid(self, message):
         """Handle a NewCallerid event.
 
         Updates our params attribute and calls our newCallerId method.
@@ -119,7 +119,7 @@ class Channel(object):
         """Called when we have a new caller ID."""
 
 
-    def event_VarSet(self, message):
+    def event_Varset(self, message):
         """Handle a VarSet event.
 
         Sets the appropriate variable in the variables dict and calls
