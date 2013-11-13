@@ -1,0 +1,77 @@
+---
+- hosts: all
+
+  sudo: yes
+
+  tasks:
+
+    - name: prerequisite for asterisk repository install
+      yum: pkg=dnsmasq state=present
+
+    - name: asterisk repository install
+      yum: pkg=http://packages.asterisk.org/centos/6/current/x86_64/RPMS/asterisknow-version-3.0.0-1_centos6.noarch.rpm
+           state=present
+
+    - name: asterisk repository enable
+      ini_file: dest=/etc/yum.repos.d/centos-asterisk-11.repo
+                section=asterisk-11
+                option=enabled
+                value=1
+
+    - name: asterisk installation
+      yum: pkg=asterisk state=present
+
+    ###
+
+    # In Ansible 1.4, this will work first try.
+
+    - name: link asterisk config directory 
+      file: src=/vagrant/etc/asterisk dest=/etc/asterisk state=link force=yes
+      register: link_asterisk_config
+      ignore_errors: yes
+      notify: restart asterisk
+
+    # In Ansible 1.3, this is needed to catch failure of the above, as
+    # directories cannot be forced to links.
+
+    - name: remove asterisk config directory
+      file: name=/etc/asterisk state=absent
+      when: link_asterisk_config|failed
+
+    - name: link asterisk config directory again
+      file: src=/vagrant/etc/asterisk dest=/etc/asterisk state=link
+      when: link_asterisk_config|failed
+      notify: restart asterisk
+
+    ###
+
+    - name: enable asterisk
+      service: name=asterisk enabled=yes
+
+    - name: epel repository install
+      yum: pkg=http://mirror.us.leaseweb.net/epel/6/x86_64/epel-release-6-8.noarch.rpm
+           state=present
+
+    - name: epel repository restrict
+      ini_file: dest=/etc/yum.repos.d/epel.repo
+                section=epel
+                option=includepkgs
+                value='python-virtualenv python-pip'
+
+    - name: epel repository enable
+      ini_file: dest=/etc/yum.repos.d/epel.repo
+                section=epel
+                option=enabled
+                value=1
+
+    - name: python virtualenv/pip installation
+      yum: pkg={{ item }} state=present
+      with_items:
+        - python-virtualenv
+        - python-pip
+
+  handlers:
+
+    - name: restart asterisk
+      service: name=asterisk state=restarted
+
