@@ -12,7 +12,8 @@ http://developer.nrel.gov/downloads/vagrant-boxes/ for this purpose.
 `vagrant box add centos6 http://...` is your friend here, substituting
 the `...` for something useful of course.
 
-Put `Vagrantfile`, `playbook.yml`, and `etc` (containing the Asterisk
+Put `Vagrantfile`, `playbook.yml`, the `.repo` files,
+and `etc` (containing the Asterisk
 configurations) in the same directory, and run `vagrant up` to start
 your system.  Pay close attention to `Vagrantfile`—it contains a
 directive for setting up a host-only network.  I've randomly selected
