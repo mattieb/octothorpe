@@ -490,4 +490,55 @@ class AMIProtocolTestCase(unittest.TestCase):
         )
 
 
+    def test_dial(self):
+        """Channel dial"""
+
+        channel = self._startAndSpawnChannel()
+        channel.dialBegin = Mock()
+        channel.dialEnd = Mock()
+        self.protocol.dataReceived(
+            'Event: Dial\r\n'
+            'SubEvent: Begin\r\n'
+            'CallerIDName: Foo\r\n'
+            'CallerIDNum: 202\r\n'
+            'Channel: Foo/202-0\r\n'
+            'ConnectedLineName: <unknown>\r\n'
+            'ConnectedLineNum: <unknown>\r\n'
+            'Destination: Bar/303-0\r\n'
+            'DestUniqueid: 0987654321.0\r\n'
+            'DialString: 303\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        channel.dialBegin.assert_called_once_with('Bar/303-0', '303')
+        self.protocol.dataReceived(
+            'Event: Dial\r\n'
+            'SubEvent: End\r\n'
+            'DialStatus: ANSWER\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Uniqueid: 123456789.0\r\n'
+            '\r\n'
+        )
+        channel.dialEnd.assert_called_once_with('ANSWER')
+
+
+    def test_dial4(self):
+        """Channel dial from Asterisk 1.4"""
+
+        channel = self._startAndSpawnChannel()
+        channel.dialBegin = Mock()
+        channel.dialEnd = Mock()
+        self.protocol.dataReceived(
+            'Event: Dial\r\n'
+            'Source: Foo/202-0\r\n'
+            'Destination: Bar/303-0\r\n'
+            'CallerID: 202\r\n'
+            'CallerIDName: Foo\r\n'
+            'SrcUniqueID: 1234567890.0\r\n'
+            'DestUniqueID: 0987654321.0\r\n'
+            '\r\n'
+        )
+        channel.dialBegin.assert_called_once_with('Bar/303-0', None)
+
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

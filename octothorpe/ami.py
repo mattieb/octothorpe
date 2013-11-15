@@ -62,6 +62,8 @@ class AMIProtocol(BaseAMIProtocol):
         elif (event in ('Link', 'Unlink') and
               'channel1' in message and 'channel2' in message):
             names = [message['channel1'], message['channel2']]            
+        elif 'source' in message and event == 'Dial':
+            names = [message['source']]
         else:
             names = []
 

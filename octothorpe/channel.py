@@ -234,4 +234,37 @@ class Channel(object):
         """Called when we are unlinked from another channel."""
 
 
+    def event_Dial(self, message):
+        """Handle a dial event."""
+
+        try:
+            subevent = message['subevent'].lower()
+        except KeyError:
+            subevent = 'begin'
+
+        if subevent == 'begin':
+            self.dialBegin(message['destination'], message.get('dialstring'))
+        elif subevent == 'end':
+            self.dialEnd(message.get('dialstatus'))
+        else:
+            raise ProtocolError('unknown dial subevent %r' % subevent)
+
+    def dialBegin(self, destination, dialString):
+        """Called when we are dialing.
+
+        destination -- destination channel
+
+        dialString -- dial string or None if not present
+
+        """
+
+
+    def dialEnd(self, dialStatus):
+        """Called when dialing ends.
+
+        dialStatus -- dial status value or None if not present
+
+        """
+
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
