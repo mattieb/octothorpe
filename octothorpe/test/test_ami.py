@@ -551,4 +551,25 @@ class AMIProtocolTestCase(unittest.TestCase):
         channel.dialBegin.assert_called_once_with('Bar/303-0', None)
 
 
+    def test_hangup(self):
+        """Channel hangup"""
+
+        channel = self._startAndSpawnChannel()
+        channel.hungUp = Mock()
+        self.protocol.dataReceived(
+            'Event: Hangup\r\n'
+            'AccountCode: 123\r\n'
+            'Cause: 16\r\n'
+            'Cause-txt: Normal Clearing\r\n'
+            'Channel: Foo/202-0\r\n'
+            'CallerIDNum: 202\r\n'
+            'CallerIDName: Foo\r\n'
+            'ConnectedLineNum: 303\r\n'
+            'ConnectedLineName: Bar\r\n'
+            '\r\n'
+        )
+        channel.hungUp.assert_called_once_with(16, 'Normal Clearing')
+        self.assertNotIn('Foo/202-0', self.protocol.channels)
+
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

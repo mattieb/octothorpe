@@ -267,4 +267,28 @@ class Channel(object):
         """
 
 
+    def event_Hangup(self, message):
+        """Handle a hangup event.
+
+        Removes the channel from the protocol's channels dict.
+
+        """
+        del self.protocol.channels[self.name]
+        self.hungUp(int(message['cause']), message['cause-txt'])
+
+
+    def hungUp(self, cause, causeText):
+        """Called when the channel hangs up.
+
+        The channel will be invalid after it is hung up, so it is
+        removed from the protocol's channel dictionary before this
+        method is called.
+
+        cause -- cause code
+
+        causeText -- cause text
+
+        """
+
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
