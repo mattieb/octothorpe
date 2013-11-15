@@ -50,7 +50,7 @@ if __name__ == '__main__':
             return AMIWatcher('manager', 'secret')
 
     log.startLogging(stderr)
-    reactor.connectTCP('localhost', 5038, AMIWatcherFactory())
+    reactor.connectTCP('172.20.64.100', 5038, AMIWatcherFactory())
     reactor.run()
 
 

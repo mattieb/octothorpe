@@ -86,6 +86,9 @@
         - python-virtualenv
         - python-pip
 
+    - name: disable/stop iptables
+      service: name=iptables enabled=no state=stopped
+
   handlers:
 
     - name: restart asterisk
