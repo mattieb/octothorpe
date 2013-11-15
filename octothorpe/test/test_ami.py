@@ -496,6 +496,16 @@ class AMIProtocolTestCase(unittest.TestCase):
         channel = self._startAndSpawnChannel()
         channel.dialBegin = Mock()
         channel.dialEnd = Mock()
+        self.assertRaises(
+            ProtocolError,
+            self.protocol.dataReceived,
+            'Event: Dial\r\n'
+            'DialStatus: <unknown>\r\n'
+            'SubEvent: Foo\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
         self.protocol.dataReceived(
             'Event: Dial\r\n'
             'SubEvent: Begin\r\n'
