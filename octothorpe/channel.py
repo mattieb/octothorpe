@@ -246,14 +246,15 @@ class Channel(object):
             subevent = 'begin'
 
         if subevent == 'begin':
-            self.dialBegin(message['destination'], message.get('dialstring'))
+            self.dialBegun(message['destination'], message.get('dialstring'))
         elif subevent == 'end':
-            self.dialEnd(message.get('dialstatus'))
+            self.dialEnded(message.get('dialstatus'))
         else:
             raise ProtocolError('unknown dial subevent %r' % subevent)
 
-    def dialBegin(self, destination, dialString):
-        """Called when we are dialing.
+
+    def dialBegun(self, destination, dialString):
+        """Called when dialing begins.
 
         destination -- destination channel
 
@@ -262,34 +263,10 @@ class Channel(object):
         """
 
 
-    def dialEnd(self, dialStatus):
+    def dialEnded(self, dialStatus):
         """Called when dialing ends.
 
         dialStatus -- dial status value or None if not present
-
-        """
-
-
-    def event_hangup(self, message):
-        """Handle a hangup event.
-
-        Removes the channel from the protocol's channels dict.
-
-        """
-        del self.protocol.channels[self.name]
-        self.hungUp(int(message['cause']), message['cause-txt'])
-
-
-    def hungUp(self, cause, causeText):
-        """Called when the channel hangs up.
-
-        The channel will be invalid after it is hung up, so it is
-        removed from the protocol's channel dictionary before this
-        method is called.
-
-        cause -- cause code
-
-        causeText -- cause text
 
         """
 

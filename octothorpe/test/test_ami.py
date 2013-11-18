@@ -509,12 +509,12 @@ class AMIProtocolTestCase(unittest.TestCase):
         )
 
 
-    def test_dial(self):
+    def test_dialed(self):
         """Channel dial"""
 
         channel = self._startAndSpawnChannel()
-        channel.dialBegin = Mock()
-        channel.dialEnd = Mock()
+        channel.dialBegun = Mock()
+        channel.dialEnded = Mock()
         self.assertRaises(
             ProtocolError,
             self.protocol.dataReceived,
@@ -539,7 +539,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
-        channel.dialBegin.assert_called_once_with('Bar/303-0', '303')
+        channel.dialBegun.assert_called_once_with('Bar/303-0', '303')
         self.protocol.dataReceived(
             'Event: Dial\r\n'
             'SubEvent: End\r\n'
@@ -548,15 +548,15 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 123456789.0\r\n'
             '\r\n'
         )
-        channel.dialEnd.assert_called_once_with('ANSWER')
+        channel.dialEnded.assert_called_once_with('ANSWER')
 
 
     def test_dial4(self):
         """Channel dial from Asterisk 1.4"""
 
         channel = self._startAndSpawnChannel()
-        channel.dialBegin = Mock()
-        channel.dialEnd = Mock()
+        channel.dialBegun = Mock()
+        channel.dialEnded = Mock()
         self.protocol.dataReceived(
             'Event: Dial\r\n'
             'Source: Foo/202-0\r\n'
@@ -567,28 +567,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'DestUniqueID: 0987654321.0\r\n'
             '\r\n'
         )
-        channel.dialBegin.assert_called_once_with('Bar/303-0', None)
-
-
-    def test_hangup(self):
-        """Channel hangup"""
-
-        channel = self._startAndSpawnChannel()
-        channel.hungUp = Mock()
-        self.protocol.dataReceived(
-            'Event: Hangup\r\n'
-            'AccountCode: 123\r\n'
-            'Cause: 16\r\n'
-            'Cause-txt: Normal Clearing\r\n'
-            'Channel: Foo/202-0\r\n'
-            'CallerIDNum: 202\r\n'
-            'CallerIDName: Foo\r\n'
-            'ConnectedLineNum: 303\r\n'
-            'ConnectedLineName: Bar\r\n'
-            '\r\n'
-        )
-        channel.hungUp.assert_called_once_with(16, 'Normal Clearing')
-        self.assertNotIn('Foo/202-0', self.protocol.channels)
+        channel.dialBegun.assert_called_once_with('Bar/303-0', None)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
