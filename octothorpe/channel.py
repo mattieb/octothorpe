@@ -110,9 +110,12 @@ class Channel(object):
         Updates our params attribute and calls our newCallerId method.
 
         """
-        self.params['calleridnum'] = message['calleridnum']
-        self.params['calleridname'] = message['calleridname']
-        self.newCallerId(message['calleridnum'], message['calleridname'])
+        try:
+            number = self.params['calleridnum'] = message['calleridnum']
+        except KeyError:
+            number = self.params['calleridnum'] = message['callerid']
+        name = self.params['calleridname'] = message['calleridname']
+        self.newCallerId(number, name)
 
 
     def newCallerId(self, number, name):

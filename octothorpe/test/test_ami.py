@@ -282,6 +282,25 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(channel.params['calleridname'], 'John Doe')
 
 
+    def test_newCallerId4(self):
+        """Channel caller ID changed with Asterisk-1.4-era parameters"""
+
+        channel = self._startAndSpawnChannel()
+        channel.newCallerId = Mock()
+        self.protocol.dataReceived(
+            'Event: NewCallerid\r\n'
+            'CallerIDName: John Doe\r\n'
+            'CallerID: 8885551212\r\n'
+            'Channel: Foo/202-0\r\n'
+            'CID-CallingPres: 0 (Presentation Allowed, Not Screened)\r\n'
+            'Uniqueid: 123456789.0\r\n'
+            '\r\n'
+        )
+        channel.newCallerId.assert_called_once_with('8885551212', 'John Doe')
+        self.assertEqual(channel.params['calleridnum'], '8885551212')
+        self.assertEqual(channel.params['calleridname'], 'John Doe')
+
+
     def test_variableSet(self):
         """Channel variable set"""
 
