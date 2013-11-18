@@ -83,8 +83,8 @@ class Channel(object):
         self.linkedTo = None
 
 
-    def event_Newstate(self, message):
-        """Handle a Newstate event.
+    def event_newstate(self, message):
+        """Handle a newstate event.
 
         Updates our state and params attributes, and calls our newState
         method.
@@ -104,8 +104,8 @@ class Channel(object):
         """Called when we have a new state."""
 
 
-    def event_Newcallerid(self, message):
-        """Handle a NewCallerid event.
+    def event_newcallerid(self, message):
+        """Handle a newcallerid event.
 
         Updates our params attribute and calls our newCallerId method.
 
@@ -122,8 +122,8 @@ class Channel(object):
         """Called when we have a new caller ID."""
 
 
-    def event_Varset(self, message):
-        """Handle a VarSet event.
+    def event_varset(self, message):
+        """Handle a varset event.
 
         Sets the appropriate variable in the variables dict and calls
         our variableSet method.
@@ -138,8 +138,8 @@ class Channel(object):
         """Called when a channel variable is set."""
 
 
-    def event_Hangup(self, message):
-        """Handle a Hangup event.
+    def event_hangup(self, message):
+        """Handle a hangup event.
 
         Calls our hungUp method, then deletes the channel from the
         protocol's channels dict.
@@ -153,8 +153,8 @@ class Channel(object):
         """Called when a channel is hung up."""
 
 
-    def event_Rename(self, message):
-        """Handle a Rename event.
+    def event_rename(self, message):
+        """Handle a rename event.
 
 	Moves the channel to its new name in the protocol's channels
 	dict, then calls our renamed method.
@@ -170,8 +170,8 @@ class Channel(object):
         """Called when a channel is renamed."""
 
 
-    def event_Newexten(self, message):
-        """Handle a Newexten event.
+    def event_newexten(self, message):
+        """Handle a newexten event.
 
         Records the context, extension, priority, application, and
         application data in our extensions list and passes same to our
@@ -194,8 +194,8 @@ class Channel(object):
         """Called when a new context/extension/priority is entered."""
 
 
-    def event_Link(self, message):
-        """Handle a Link event.
+    def event_link(self, message):
+        """Handle a link event.
 
         Locates the named channel and sets our linkedTo attribute to
         it, then calls our linked method with same.
@@ -216,7 +216,7 @@ class Channel(object):
         """Called when we are linked to another channel."""
 
 
-    def event_Unlink(self, message):
+    def event_unlink(self, message):
         """Handle an unlink event.
 
         Sets our linkedTo attribute to None and calls our unlinked
@@ -237,7 +237,7 @@ class Channel(object):
         """Called when we are unlinked from another channel."""
 
 
-    def event_Dial(self, message):
+    def event_dial(self, message):
         """Handle a dial event."""
 
         try:
@@ -270,7 +270,7 @@ class Channel(object):
         """
 
 
-    def event_Hangup(self, message):
+    def event_hangup(self, message):
         """Handle a hangup event.
 
         Removes the channel from the protocol's channels dict.

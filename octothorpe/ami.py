@@ -50,19 +50,19 @@ class AMIProtocol(BaseAMIProtocol):
 
         If we determine the event is handleable by one or more
         Channels, we will dispatch the a copy to each Channel that has
-        the appropriate handler method (i.e. event_XXX).  If no such
+        the appropriate handler method (i.e. event_xxx).  If no such
         Channel event handlers are found, we fall back on
         BaseAMIProtocol behavior.
 
         """
-        if 'oldname' in message and event == 'Rename':
+        if 'oldname' in message and event == 'rename':
             names = [message['oldname']]
-        elif 'channel' in message and event != 'Newchannel':
+        elif 'channel' in message and event != 'newchannel':
             names = [message['channel']]
-        elif (event in ('Link', 'Unlink') and
+        elif (event in ('link', 'unlink') and
               'channel1' in message and 'channel2' in message):
             names = [message['channel1'], message['channel2']]            
-        elif 'source' in message and event == 'Dial':
+        elif 'source' in message and event == 'dial':
             names = [message['source']]
         else:
             names = []
@@ -89,7 +89,7 @@ class AMIProtocol(BaseAMIProtocol):
         return d
 
 
-    def event_Newchannel(self, message):
+    def event_newchannel(self, message):
         """Handle a Newchannel event.
 
         This method will create a new object of class specified by our

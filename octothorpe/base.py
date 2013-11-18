@@ -73,7 +73,7 @@ class BaseAMIProtocol(LineOnlyReceiver):
 
             event = message.pop('event', None)
             if event:
-                self.eventReceived(event.lower().capitalize(), message)
+                self.eventReceived(event.lower(), message)
                 return
 
             response = message.pop('response', None)
@@ -88,7 +88,7 @@ class BaseAMIProtocol(LineOnlyReceiver):
         """An event was received.
 
 	The event message will be dispatched to an event handler method
-	(e.g. event_FullyBooted), if it exists.
+	(e.g. event_fullybooted), if it exists.
 
         """
         eventHandler = getattr(self, 'event_' + event, None)

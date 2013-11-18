@@ -118,7 +118,7 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
     def test_eventReceived(self):
         """Receive an event"""
 
-        self.protocol.event_Foo = Mock()
+        self.protocol.event_foo = Mock()
         self.protocol.started = True
         self.protocol.dataReceived(
             'Event: Foo\r\n'
@@ -126,7 +126,7 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
             'Key2: Value2\r\n'
             '\r\n'
         )
-        self.protocol.event_Foo.assert_called_once_with(
+        self.protocol.event_foo.assert_called_once_with(
             {'key': 'Value', 'key2': 'Value2'}
         )
 
