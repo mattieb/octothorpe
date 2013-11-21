@@ -51,6 +51,21 @@ class Channel(object):
         self.params['channelstatedesc'] = desc
 
 
+    def _setCallerId(self, message):
+        """
+        Set the callerId attribute and params from a message, 
+        synthesizing the calleridnum param if necessary.
+
+        """
+        try:
+            num = message['calleridnum']
+        except KeyError:
+            num = message.get('callerid')
+        name = message.get('calleridname')
+        self.callerId = (num, name)
+        self.params['calleridnum'], self.params['calleridname'] = self.callerId
+
+
     def __init__(self, protocol, name, newchannelMessage):
         """Initialize the channel object.
 
@@ -77,6 +92,8 @@ class Channel(object):
             self.state = self.params['channelstate']
         except KeyError:
             self._synthesizeStateParams(self.params['state'])
+
+        self._setCallerId(newchannelMessage)
 
         self.variables = {}
         self.extensions = []
@@ -110,12 +127,8 @@ class Channel(object):
         Updates our params attribute and calls our newCallerId method.
 
         """
-        try:
-            number = self.params['calleridnum'] = message['calleridnum']
-        except KeyError:
-            number = self.params['calleridnum'] = message['callerid']
-        name = self.params['calleridname'] = message['calleridname']
-        self.newCallerId(number, name)
+        self._setCallerId(message)
+        self.newCallerId(*self.callerId)
 
 
     def newCallerId(self, number, name):

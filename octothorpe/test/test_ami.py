@@ -131,7 +131,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Event: Newchannel\r\n'
             'AccountCode: 123\r\n'
             'CallerIDName: Foo\r\n'
-            'CallerIDNum: 201\r\n'
+            'CallerIDNum: 202\r\n'
             'Channel: Foo/202-0\r\n'
             'ChannelState: 0\r\n'
             'ChannelStateDesc: Down\r\n'
@@ -144,11 +144,12 @@ class AMIProtocolTestCase(unittest.TestCase):
         name, args, kwargs = self.protocol.newChannel.mock_calls[0]
         channelName, channel = args
         self.assertEqual(channelName, 'Foo/202-0')
+        self.assertEqual(channel.callerId, ('202', 'Foo'))
         self.assertEqual(channel.params,
             {
                 'accountcode': '123',
                 'calleridname': 'Foo',
-                'calleridnum': '201',
+                'calleridnum': '202',
                 'channel': 'Foo/202-0',
                 'channelstate': 0,
                 'channelstatedesc': 'Down',
@@ -164,7 +165,7 @@ class AMIProtocolTestCase(unittest.TestCase):
 
 
     def test_newChannel4(self):
-        """New channel created with 1.4-era State parameter"""
+        """New channel created with 1.4-era parameters"""
 
         self.protocol.started = True
         self.protocol.newChannel = Mock()
@@ -172,7 +173,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Event: Newchannel\r\n'
             'Channel: Foo/202-0\r\n'
             'State: Down\r\n'
-            'CallerIDNum: 202\r\n'
+            'CallerID: 202\r\n'
             'CallerIDName: Foo\r\n'
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
@@ -181,12 +182,14 @@ class AMIProtocolTestCase(unittest.TestCase):
         name, args, kwards = self.protocol.newChannel.mock_calls[0]
         channelName, channel = args
         self.assertEqual(channelName, 'Foo/202-0')
+        self.assertEqual(channel.callerId, ('202', 'Foo'))
         self.assertEqual(channel.params,
             {
                 'channel': 'Foo/202-0',
                 'channelstate': 0,
                 'channelstatedesc': 'Down',
                 'calleridname': 'Foo',
+                'callerid': '202',
                 'calleridnum': '202',
                 'state': 'Down',
                 'uniqueid': '1234567890.0'
@@ -208,7 +211,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             {
                 'accountcode': '123',
                 'calleridname': 'Foo',
-                'calleridnum': '201',
+                'calleridnum': '202',
                 'channel': 'Foo/202-0',
                 'channelstate': '0',
                 'channelstatedesc': 'Down',
@@ -278,6 +281,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             '\r\n'
         )
         channel.newCallerId.assert_called_once_with('8885551212', 'John Doe')
+        self.assertEqual(channel.callerId, ('8885551212', 'John Doe'))
         self.assertEqual(channel.params['calleridnum'], '8885551212')
         self.assertEqual(channel.params['calleridname'], 'John Doe')
 
@@ -297,6 +301,7 @@ class AMIProtocolTestCase(unittest.TestCase):
             '\r\n'
         )
         channel.newCallerId.assert_called_once_with('8885551212', 'John Doe')
+        self.assertEqual(channel.callerId, ('8885551212', 'John Doe'))
         self.assertEqual(channel.params['calleridnum'], '8885551212')
         self.assertEqual(channel.params['calleridname'], 'John Doe')
 
