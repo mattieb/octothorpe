@@ -27,7 +27,8 @@ def disassembleMessage(data):
     """Disassemble a message into fields"""
 
     lines = data.split('\r\n')
-    assert lines[-2:] == ['', '']
+    if lines[-2:] != ['', '']:
+        raise ValueError('unterminated message (%r)' % (data,))
     fields = {}
     for line in lines[:-2]:
         key, value = line.split(': ', 2)
@@ -60,7 +61,7 @@ class DisassembleMessageTestCase(unittest.TestCase):
             'Foo: Bar\r\n'
             'Baz: Quux\r\n'
         )
-        self.assertRaises(AssertionError, disassembleMessage, data)
+        self.assertRaises(ValueError, disassembleMessage, data)
 
 
     def test_invalidMessage(self):
