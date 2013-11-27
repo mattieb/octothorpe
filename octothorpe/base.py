@@ -127,9 +127,11 @@ class BaseAMIProtocol(LineOnlyReceiver):
 
         The basic implementation starts the protocol by setting the
         started attribute to True.  If you want to check the protocol
-        version, override this method.
+        version, override this method and be sure to either deal with
+        the started attribute yourself or (even better) call this
+        implementation.
 
-        The logical thing to implement in any override would be a login
+        The logical thing to implement in an override would be a login
         action.
 
         """
