@@ -6,9 +6,8 @@ for the [Twisted][1] engine.
 
 At the moment, `octothorpe` is still in early development, though
 I intend it to eventually offer full asynchronous AGI functionality.
-
 Because of this, I cannot at this time offer API stability, but
-that is definitely in the cards for the first (0.1?) release.
+I intend to do this as it shapes up further.
 
 `octothorpe`'s primary design goal is to disentangle the myriad
 multiplexed event streams that all come over the AMI, making it
