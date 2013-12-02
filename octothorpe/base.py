@@ -17,6 +17,7 @@ from uuid import uuid1
 
 from twisted.internet.defer import Deferred
 from twisted.protocols.basic import LineOnlyReceiver
+from twisted.python import log
 
 
 """Asterisk Manager Interface support"""
@@ -28,6 +29,10 @@ class ActionException(Exception):
 
 class ProtocolError(Exception):
     """Protocol error"""
+
+
+class UnknownActionException(KeyError):
+    """Response to unknown action received"""
 
 
 class BaseAMIProtocol(LineOnlyReceiver):
@@ -45,43 +50,55 @@ class BaseAMIProtocol(LineOnlyReceiver):
 
 
     def lineReceived(self, line):
-        if not self.started:
-            if not line.startswith('Asterisk Call Manager/'):
-                raise ProtocolError('unknown banner: %r' % (line,))
-            self.bannerReceived(line)
+        try:
+            if not self.started:
+                if not line.startswith('Asterisk Call Manager/'):
+                    raise ProtocolError('unknown banner: %r' % (line,))
+                self.bannerReceived(line)
 
+            else:
+                if line:
+                    self.lines.append(line)
+                    return
+
+                message = {}
+                body = None
+                for line in self.lines:
+                    if line.endswith('--END COMMAND--'):
+                        response = message.get('response')
+                        if response != 'Follows':
+                            raise ProtocolError('body in non-Follows response')
+                        body = line[:-15]
+                    else:
+                        # Normalize the key by lowercasing, and don't
+                        # require a space between the colon and value,
+                        # since some AMI fields don't supply it.
+                        key, value = line.split(':', 1)
+                        message[key.lower()] = value.lstrip()
+                self.lines = []
+
+                event = message.pop('event', None)
+                if event:
+                    self.eventReceived(event.lower(), message)
+                    return
+
+                response = message.pop('response', None)
+                if response:
+                    self.responseReceived(response, message, body)
+                    return
+
+                raise ProtocolError('bad message %r' % (message,))
+
+        except Exception, e:
+            self.protocolExceptionReceived(e)
+
+
+    def protocolExceptionReceived(self, exception):
+        if exception.__class__ in [UnknownActionException]:
+            log.msg('ignoring exception %s (%r)' % (exception, exception))
         else:
-            if line:
-                self.lines.append(line)
-                return
-
-            message = {}
-            body = None
-            for line in self.lines:
-                if line.endswith('--END COMMAND--'):
-                    response = message.get('response')
-                    if response != 'Follows':
-                        raise ProtocolError('body in non-Follows response')
-                    body = line[:-15]
-                else:
-                    # Normalize the key by lowercasing, and don't require a
-                    # space between the colon and value, since some AMI
-                    # fields don't supply it.
-                    key, value = line.split(':', 1)
-                    message[key.lower()] = value.lstrip()
-            self.lines = []
-
-            event = message.pop('event', None)
-            if event:
-                self.eventReceived(event.lower(), message)
-                return
-
-            response = message.pop('response', None)
-            if response:
-                self.responseReceived(response, message, body)
-                return
-
-            raise ProtocolError('bad message %r' % (message,))
+            log.err(exception)
+            self.transport.loseConnection()
 
 
     def eventReceived(self, event, message):
@@ -109,7 +126,7 @@ class BaseAMIProtocol(LineOnlyReceiver):
         try:
             d = self.pendingActions.pop(actionid)
         except KeyError:
-            raise ProtocolError('unknown actionid %r' % (actionid,))
+            raise UnknownActionException('unknown actionid %r' % (actionid,))
         if response == 'Success':
             d.callback((message, None))
         elif response == 'Error':

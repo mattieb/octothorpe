@@ -93,27 +93,28 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
 
 
     def test_badBanner(self):
-        """ProtocolError is raised for a bad banner"""
+        """Connection is dropped on a bad banner"""
 
+        lose = self.transport.loseConnection = Mock()
         self.assertFalse(self.protocol.started)
-        self.assertRaises(
-            ProtocolError, self.protocol.dataReceived,
-            '220 i.aint.no.asterisk ESMTP Foo\r\n'
-        )
+        self.protocol.dataReceived('220 i.aint.no.asterisk ESMTP Foo\r\n')
+        self.assertTrue(lose.called)
         self.assertFalse(self.protocol.started)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
 
 
     def test_badMessage(self):
-        """ProtocolError is raised for a bad message"""
+        """Connection is dropped on a bad message"""
         
         self.protocol.started = True
-        self.assertRaises(
-            ProtocolError,
-            self.protocol.dataReceived,
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
             'Foo: Bar\r\n'
             'Baz: Quux\r\n'
             '\r\n'
         )
+        self.assertTrue(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
 
 
     def test_eventReceived(self):
@@ -133,13 +134,15 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
 
 
     def test_unknownActionID(self):
-        """Receive a response to an unknown action"""
+        """Connection is not dropped on an unknown action"""
 
         self.protocol.started = True
-        self.assertRaises(
-            ProtocolError, self.protocol.dataReceived,
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
             'Response: Success\r\nActionID: Foo\r\n\r\n'
         )
+        self.assertFalse(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 0)
 
 
     def _startAndSendAction(self):
@@ -201,53 +204,61 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
 
 
     def test_actionBodyOnSuccessIsError(self):
-        """ProtocolError for a Follows response with a body"""
+        """Connection is dropped on a Follows response with a body"""
 
         d, actionid = self._startAndSendAction()
-        self.assertRaises(
-            ProtocolError, self.protocol.dataReceived,
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
             'Response: Success\r\n'
             'ActionID: ' + actionid + '\r\n'
             'foo bar\nbaz quux\n--END COMMAND--\r\n'
             '\r\n'
         )
+        self.assertTrue(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
 
 
     def test_actionBodyOnErrorIsError(self):
-        """ProtocolError for an Error response with a body"""
+        """Connection is dropped on an Error response with a body"""
 
         d, actionid = self._startAndSendAction()
-        self.assertRaises(
-            ProtocolError, self.protocol.dataReceived,
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
             'Response: Error\r\n'
             'ActionID: ' + actionid + '\r\n'
             'foo bar\nbaz quux\n--END COMMAND--\r\n'
             '\r\n'
         )
+        self.assertTrue(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
 
 
     def test_actionNoBodyOnFollowsIsError(self):
-        """ProtocolError for a Follows response without a body"""
+        """Connection is dropped on a Follows response without a body"""
 
         d, actionid = self._startAndSendAction()
-        self.assertRaises(
-            ProtocolError, self.protocol.dataReceived,
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
             'Response: Follows\r\n'
             'ActionID: ' + actionid + '\r\n'
             '\r\n'
         )
+        self.assertTrue(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
 
 
     def test_badResponse(self):
-        """ProtocolError for a bad response"""
+        """Connection is dropped on a bad response"""
 
         d, actionid = self._startAndSendAction()
-        self.assertRaises(
-            ProtocolError, self.protocol.dataReceived,
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
             'Response: Foobar\r\n'
             'ActionID: ' + actionid + '\r\n'
             '\r\n'
         )
+        self.assertTrue(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

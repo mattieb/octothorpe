@@ -452,9 +452,9 @@ class AMIProtocolTestCase(unittest.TestCase):
         channel.linked.assert_called_once_with(channel2)
         self.assertEqual(channel.linkedTo, channel2)
         self.assertEqual(channel2.linkedTo, channel)
-        self.assertRaises(
-            ProtocolError,
-            self.protocol.dataReceived,
+        
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
             'Event: Link\r\n'
             'Channel1: Foo/202-0\r\n'
             'Channel2: Bar/303-0\r\n'
@@ -464,6 +464,8 @@ class AMIProtocolTestCase(unittest.TestCase):
             'CallerID2: 303\r\n'
             '\r\n'
         )
+        self.assertTrue(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
 
 
     def test_unlinked(self):
@@ -475,9 +477,8 @@ class AMIProtocolTestCase(unittest.TestCase):
         channel.linkedTo = channel2
         channel2.linkedTo = channel
         channel3 = self._spawnAnotherChannel('Baz/404-0')
-        self.assertRaises(
-            ProtocolError,
-            self.protocol.dataReceived,
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
             'Event: Unlink\r\n'
             'Channel1: Foo/202-0\r\n'
             'Channel2: Baz/404-0\r\n'
@@ -487,6 +488,8 @@ class AMIProtocolTestCase(unittest.TestCase):
             'CallerID2: 303\r\n'
             '\r\n'
         )
+        self.assertTrue(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
         self.protocol.dataReceived(
             'Event: Unlink\r\n'
             'Channel1: Foo/202-0\r\n'
@@ -500,9 +503,8 @@ class AMIProtocolTestCase(unittest.TestCase):
         channel.unlinked.assert_called_once_with(channel2)
         self.assertEqual(channel.linkedTo, None)
         self.assertEqual(channel2.linkedTo, None)
-        self.assertRaises(
-            ProtocolError,
-            self.protocol.dataReceived,
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
             'Event: Unlink\r\n'
             'Channel1: Foo/202-0\r\n'
             'Channel2: Bar/303-0\r\n'
@@ -512,6 +514,8 @@ class AMIProtocolTestCase(unittest.TestCase):
             'CallerID2: 303\r\n'
             '\r\n'
         )
+        self.assertTrue(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
 
 
     def test_dialed(self):
@@ -520,9 +524,9 @@ class AMIProtocolTestCase(unittest.TestCase):
         channel = self._startAndSpawnChannel()
         channel.dialBegun = Mock()
         channel.dialEnded = Mock()
-        self.assertRaises(
-            ProtocolError,
-            self.protocol.dataReceived,
+
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
             'Event: Dial\r\n'
             'DialStatus: <unknown>\r\n'
             'SubEvent: Foo\r\n'
@@ -530,6 +534,9 @@ class AMIProtocolTestCase(unittest.TestCase):
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
         )
+        self.assertTrue(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
+
         self.protocol.dataReceived(
             'Event: Dial\r\n'
             'SubEvent: Begin\r\n'
