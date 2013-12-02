@@ -10,7 +10,7 @@ setup(
     author='Matt Behrens',
     author_email='matt@zigg.com',
     url='http://www.zigg.com/code/octothorpe/',
-    packages=['octothorpe'],
+    packages=['octothorpe', 'octothorpe.test'],
     requires=['Twisted'],
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
