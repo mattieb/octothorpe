@@ -15,33 +15,21 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
-from twisted.application import internet, service
-from twisted.internet.protocol import ReconnectingClientFactory
-
 from octothorpe.ami import AMIProtocol
 
 
 """Example to watch events fly by on an Asterisk Manager Interface"""
 
 class AMIWatcher(AMIProtocol):
-    def __init__(self, username, secret, factory=None):
+
+    def __init__(self, username, secret):
         self.username = username
         self.secret = secret
-        self.factory = factory
 
 
     def bannerReceived(self, banner):
         AMIProtocol.bannerReceived(self, banner)
-        d = self.loginMD5(self.username, self.secret)
-        d.addCallback(self.loginSucceeded)
-
-
-    def loginSucceeded(self, result):
-        try:
-            self.factory.resetDelay()
-            print 'Connection delay reset'
-        except AttributeError:
-            pass
+        self.loginMD5(self.username, self.secret)
 
 
     def eventReceived(self, event, message):
@@ -51,14 +39,19 @@ class AMIWatcher(AMIProtocol):
             print '\t%r: %r' % (key, message[key])
 
 
-class AMIWatcherFactory(ReconnectingClientFactory):
-    def buildProtocol(self, addr):
-        return AMIWatcher('manager', 'secret', factory=self)
+if __name__ == '__main__':
+    from twisted.internet import reactor
+    from twisted.internet.protocol import ClientFactory
+    from twisted.python import log
+    from sys import stderr
 
+    class AMIWatcherFactory(ClientFactory):
+        def buildProtocol(self, addr):
+            return AMIWatcher('manager', 'secret')
 
-application = service.Application('amiwatch')
-service = internet.TCPClient('172.20.64.100', 5038, AMIWatcherFactory())
-service.setServiceParent(application)
+    log.startLogging(stderr)
+    reactor.connectTCP('172.20.64.100', 5038, AMIWatcherFactory())
+    reactor.run()
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
