@@ -582,4 +582,31 @@ class AMIProtocolTestCase(unittest.TestCase):
         channel.dialBegun.assert_called_once_with('Bar/303-0', None)
 
 
+    def test_channelReloadDistribution(self):
+        """ChannelReload event called on AMIProtocol"""
+
+        channel = self._startAndSpawnChannel()
+        cbEvent = self.protocol.event_channelreload = Mock()
+        lose = self.transport.loseConnection = Mock()
+
+        self.protocol.dataReceived(
+            'Event: ChannelReload\r\n'
+            'Channel: SIP\r\n'
+            'ReloadReason: RELOAD (Channel module reload)\r\n'
+            'Registry_Count: 0\r\n'
+            'Peer_Count: 0\r\n'
+            'User_Count: 0\r\n'
+            '\r\n'
+        )
+
+        cbEvent.assert_called_once_with({
+            'channel': 'SIP',
+            'reloadreason': 'RELOAD (Channel module reload)',
+            'registry_count': '0',
+            'peer_count': '0',
+            'user_count': '0',
+        })
+        self.assertFalse(lose.called)
+
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

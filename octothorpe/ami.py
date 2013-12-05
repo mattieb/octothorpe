@@ -57,7 +57,8 @@ class AMIProtocol(BaseAMIProtocol):
         """
         if 'oldname' in message and event == 'rename':
             names = [message['oldname']]
-        elif 'channel' in message and event != 'newchannel':
+        elif 'channel' in message and event not in ['channelreload',
+                                                    'newchannel']:
             names = [message['channel']]
         elif (event in ('link', 'unlink') and
               'channel1' in message and 'channel2' in message):
