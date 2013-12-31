@@ -100,6 +100,20 @@ class Channel(object):
         self.linkedTo = None
 
 
+    def sendAction(self, actionName, fields):
+        """Send an action on this channel.
+
+        Returns a Deferred that will fire when a Success response
+        is received.
+
+        Works identically to BaseAMIProtocol.sendAction except it
+        prepopulates Channel before sending the action.
+
+        """
+        fields['channel'] = self.name
+        return self.protocol.sendAction(actionName, fields)
+
+
     def event_newstate(self, message):
         """Handle a newstate event.
 

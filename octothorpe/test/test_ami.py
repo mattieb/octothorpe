@@ -609,4 +609,20 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertFalse(lose.called)
 
 
+    def test_sendActionOnChannel(self):
+        """Send an action on a channel"""
+
+        channel = self._startAndSpawnChannel()
+        d = channel.sendAction(
+            'Bar',
+            {'key': 'Value', 'key2': 'Value2'}
+        )
+        fields = disassembleMessage(self.transport.value())
+        self.assertEqual(fields['action'], 'Bar')
+        self.assertIn('actionid', fields)
+        self.assertEqual(fields['key'], 'Value')
+        self.assertEqual(fields['key2'], 'Value2')
+        self.assertEqual(fields['channel'], 'Foo/202-0')
+
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
