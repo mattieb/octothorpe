@@ -2,4 +2,5 @@
 *.swp
 .coverage
 _trial_temp
+dist
 MANIFEST
