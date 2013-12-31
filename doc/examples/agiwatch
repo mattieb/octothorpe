@@ -1,0 +1,95 @@
+#!/usr/bin/env python
+#
+# Copyright (c) 2013 Matt Behrens <matt@zigg.com>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+
+from twisted.python import log
+
+from octothorpe.asyncagi import AsyncAGIChannel, AsyncAGIProtocol
+
+
+"""Toy to answer an incoming AsyncAGI call"""
+
+
+def _printDict(d):
+    for key in sorted(d.keys()):
+        print '\t%r: %r' % (key, d[key])
+
+
+class AnswererChannel(AsyncAGIChannel):
+    def asyncAGIStarted(self, context, priority, extension, env):
+        d = self.queueAGI('EXEC Playback hello-world')
+        d.addCallback(log.msg)
+
+
+class Answerer(AsyncAGIProtocol):
+    channelClass = AnswererChannel
+
+    def __init__(self, username, secret):
+        self.username = username
+        self.secret = secret
+
+
+    def bannerReceived(self, banner):
+        AsyncAGIProtocol.bannerReceived(self, banner)
+        self.loginMD5(self.username, self.secret)
+
+
+    def eventReceived(self, event, message):
+        print 'Event received:', self, event
+        _printDict(message)
+        AsyncAGIProtocol.eventReceived(self, event, message)
+
+
+    def responseReceived(self, response, message, body):
+        print 'Response received:', self, response
+        _printDict(message)
+        if body:
+            print '\tbody: %r' % (body,)
+        AsyncAGIProtocol.responseReceived(self, response, message, body)
+
+
+    def sendAction(self, action, fields):
+        print 'Sending action:', self, action
+        _printDict(fields)
+        return AsyncAGIProtocol.sendAction(self, action, fields)
+
+
+    #def lineReceived(self, line):
+    #    print 'S:', repr(line)
+    #    AsyncAGIProtocol.lineReceived(self, line)
+
+
+    #def sendLine(self, line):
+    #    print 'C:', repr(line)
+    #    AsyncAGIProtocol.sendLine(self, line)
+
+
+if __name__ == '__main__':
+    from twisted.internet import reactor
+    from twisted.internet.protocol import ClientFactory
+    from twisted.python import log
+    from sys import stderr
+
+    class AnswererFactory(ClientFactory):
+        def buildProtocol(self, addr):
+            return Answerer('manager', 'secret')
+
+    log.startLogging(stderr)
+    reactor.connectTCP('172.20.64.100', 5038, AnswererFactory())
+    reactor.run()
+
+
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
