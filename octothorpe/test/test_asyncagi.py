@@ -13,13 +13,13 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
-import urllib
+from urllib import quote
 
 from mock import Mock
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 
-from octothorpe.asyncagi import AsyncAGIProtocol, AsyncAGIChannel
+from octothorpe.asyncagi import AGIException, AsyncAGIProtocol, AsyncAGIChannel
 from octothorpe.test.test_base import disassembleMessage
 
 
@@ -56,7 +56,7 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
 
         channel = self._spawnChannel()
         started = channel.asyncAGIStarted = Mock()
-        env = urllib.quote(
+        env = quote(
             'agi_request: async\n'
             'agi_channel: Foo/202-0\n'
             'agi_context: default\n'
@@ -82,11 +82,11 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
         )
 
 
-    def test_queueAGI(self):
-        """Queue an AGI command"""
+    def test_AGI(self):
+        """Successfully run an AGI command"""
 
         channel = self._spawnChannel()
-        d = channel.queueAGI('EXEC Playback hello-world')
+        d = channel.sendAGI('EXEC Playback hello-world')
 
         message = disassembleMessage(self.transport.value())
         self.assertEqual(message['action'], 'AGI')
@@ -96,18 +96,58 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
 
         cbSuccess = Mock()
         d.addCallback(cbSuccess)
+
         self.protocol.dataReceived(
             'Response: Success\r\n'
             'ActionID: ' + message['actionid'] + '\r\n'
             '\r\n'
+        )
+        self.assertEqual(len(cbSuccess.mock_calls), 0)
+
+        self.protocol.dataReceived(
             'Event: AsyncAGI\r\n'
             'SubEvent: Exec\r\n'
             'Channel: Foo/202-0\r\n'
             'CommandID: ' + message['commandid'] + '\r\n'
-            'Result: 200%20result%3D0%0A\r\n'
+            'Result: ' + quote('200 result=0 foo=bar\n') + '\r\n'
             '\r\n'
         )
-        cbSuccess.assert_called_once_with(0)
+        cbSuccess.assert_called_once_with((0, {'foo': 'bar'}))
+
+
+    def test_AGIInvalid(self):
+        """Fail to run an invalid AGI command"""
+
+        channel = self._spawnChannel()
+        d = channel.sendAGI('FOO')
+
+        message = disassembleMessage(self.transport.value())
+        self.assertEqual(message['action'], 'AGI')
+        self.assertIn('actionid', message)
+        self.assertEqual(message['command'], 'FOO')
+        self.assertIn('commandid', message)
+
+        cbSuccess = Mock()
+        d.addCallback(cbSuccess)
+
+        self.protocol.dataReceived(
+            'Response: Success\r\n'
+            'ActionID: ' + message['actionid'] + '\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(cbSuccess.mock_calls), 0)
+
+        self.protocol.dataReceived(
+            'Event: AsyncAGI\r\n'
+            'SubEvent: Exec\r\n'
+            'Channel: Foo/202-0\r\n'
+            'CommandID: ' + message['commandid'] + '\r\n'
+            'Result: ' + quote('510 Invalid or unknown command\n') + '\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(cbSuccess.mock_calls), 0)
+        self.assertFailure(d, AGIException)
+        return d
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

@@ -13,7 +13,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
-import urllib
+from urllib import unquote
 from uuid import uuid1
 
 from twisted.internet.defer import Deferred
@@ -23,6 +23,18 @@ from octothorpe.channel import Channel
 
 
 """AsyncAGI-supporting Asterisk Manager Interface protocol"""
+
+
+class AGIException(Exception):
+    """AGI exception"""
+
+    def __init__(self, code, message):
+        self.code = code
+        self.message = message
+
+
+    def __repr__(self):
+        return '<AGIException code=%d message=%r>' % (self.code, self.message)
 
 
 class AsyncAGIChannel(Channel):
@@ -38,7 +50,7 @@ class AsyncAGIChannel(Channel):
 
         if message['subevent'] == 'Start':
             self.agiEnv = env = {}
-            for line in urllib.unquote(message['env']).split('\n'):
+            for line in unquote(message['env']).split('\n'):
                 if line:
                     key, value = line.split(': ')
                     env[key] = value
@@ -56,16 +68,15 @@ class AsyncAGIChannel(Channel):
             except KeyError:
                 raise UnknownCommandException(commandid)
 
-            # XXX This parser needs expansion to handle non-"result=xxx"
-            #     responses or responses containing text messages.
+            codestr, message = unquote(message['result']).strip().split(' ', 1)
+            code = int(codestr)
+            if code != 200:
+                d.errback(AGIException(code, message))
+                return
 
-            resultMessage = urllib.unquote(message['result']).strip().split()
-            code = int(resultMessage[0])
-            result = int((resultMessage[1].split('='))[1])
-            if code == 200:
-                d.callback(result)
-            else:
-                pass # XXX error
+            params = dict([pair.split('=', 1) for pair in message.split(' ')])
+            result = int(params.pop('result'))
+            d.callback((result, params))
 
 
     def _cbAGIQueued(self, result, commandid):
@@ -78,7 +89,7 @@ class AsyncAGIChannel(Channel):
         return d
 
 
-    def queueAGI(self, command):
+    def sendAGI(self, command):
         """Queue an AGI command.
 
         Returns a Deferred that will fire when a Success AGIExec event

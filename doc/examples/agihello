@@ -30,8 +30,25 @@ def _printDict(d):
 
 class AnswererChannel(AsyncAGIChannel):
     def asyncAGIStarted(self, context, priority, extension, env):
-        d = self.queueAGI('EXEC Playback hello-world')
-        d.addCallback(log.msg)
+        print 'Call received, playing hello-world'
+        d = self.sendAGI('EXEC Playback hello-world')
+        d.addCallback(self.playbackDone)
+
+
+    def playbackDone(self, result):
+        if result[0] == 0:
+            print 'Playback successful, hanging up'
+            d = self.sendAGI('HANGUP')
+            d.addCallback(self.hangupDone)
+        else:
+            raise Exception(result)
+
+
+    def hangupDone(self, result):
+        if result[0] == 1:
+            print 'Hangup successful'
+        else:
+            raise Exception(result)
 
 
 class Answerer(AsyncAGIProtocol):
@@ -48,13 +65,13 @@ class Answerer(AsyncAGIProtocol):
 
 
     def eventReceived(self, event, message):
-        print 'Event received:', self, event
+        print 'Event received:', event
         _printDict(message)
         AsyncAGIProtocol.eventReceived(self, event, message)
 
 
     def responseReceived(self, response, message, body):
-        print 'Response received:', self, response
+        print 'Response received:', response
         _printDict(message)
         if body:
             print '\tbody: %r' % (body,)
@@ -62,19 +79,9 @@ class Answerer(AsyncAGIProtocol):
 
 
     def sendAction(self, action, fields):
-        print 'Sending action:', self, action
+        print 'Sending action:', action
         _printDict(fields)
         return AsyncAGIProtocol.sendAction(self, action, fields)
-
-
-    #def lineReceived(self, line):
-    #    print 'S:', repr(line)
-    #    AsyncAGIProtocol.lineReceived(self, line)
-
-
-    #def sendLine(self, line):
-    #    print 'C:', repr(line)
-    #    AsyncAGIProtocol.sendLine(self, line)
 
 
 if __name__ == '__main__':
