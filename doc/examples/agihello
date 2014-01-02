@@ -20,7 +20,26 @@ from twisted.python import log
 from octothorpe.asyncagi import AsyncAGIChannel, AsyncAGIProtocol
 
 
-"""Toy to answer an incoming AsyncAGI call"""
+"""Answers an incoming AsyncAGI call and says "hello, world!"
+
+For this to work, you need a dialplan hook on an incoming extension
+that passes the call to AsyncAGI, like so:
+
+    [context]
+    exten => 400,1,AGI(agi:async)
+    same => n,Hangup
+
+When this context/exten/priority is reached, Asterisk will emit an
+AsyncAGI event on the channel, which our AnswererChannel will intercept
+and check and, if it's the one we want, will use AGI actions to play
+the hello-world sound and hang up.
+
+An important detail to note here is that the channel is *not* answered
+when control is transferred.  In this specific case, the playback will
+go ahead and answer the channel, but you'll probably want to AGI ANSWER
+it yourself normally when you're ready, or do it in dialplan.
+
+"""
 
 
 def _printDict(d):
@@ -31,6 +50,12 @@ def _printDict(d):
 class AnswererChannel(AsyncAGIChannel):
     def asyncAGIStarted(self, context, extension, priority, env):
         print 'Call received: ', context, extension, priority
+
+        # In the example extensions.conf provided in the Vagrant setup,
+        # the AGI(agi:async) invocation is in the default context at
+        # extension 403.  I don't bother checking priority here because
+        # there's no way to reach it otherwise, but you may wish to.
+
         if context == 'default' and extension == '403':
             print 'It is ours, executing hello-world'
             d = self.sendAGI('EXEC Playback hello-world')
@@ -38,6 +63,11 @@ class AnswererChannel(AsyncAGIChannel):
 
 
     def playbackDone(self, result):
+
+        # This callback is invoked when the previous AGI is done.  You
+        # can also do several sendAGI actions and have Asterisk queue
+        # them if you wish instead.
+
         if result[0] == 0:
             print 'Playback successful, hanging up'
             d = self.sendAGI('HANGUP')

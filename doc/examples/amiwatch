@@ -20,6 +20,7 @@ from octothorpe.ami import AMIProtocol
 
 """Example to watch events fly by on an Asterisk Manager Interface"""
 
+
 class AMIWatcher(AMIProtocol):
 
     def __init__(self, username, secret):

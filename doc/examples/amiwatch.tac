@@ -21,7 +21,16 @@ from twisted.internet.protocol import ReconnectingClientFactory
 from octothorpe.ami import AMIProtocol
 
 
-"""Example to watch events fly by on an Asterisk Manager Interface"""
+"""Example to watch events fly by on an Asterisk Manager Interface
+
+This is the Twisted application .tac version.  Invoke like so:
+
+    twistd -ny amiwatch.tac
+
+It can also be run as a daemon.
+
+"""
+
 
 class AMIWatcher(AMIProtocol):
     def __init__(self, username, secret, factory=None):

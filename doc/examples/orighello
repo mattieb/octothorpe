@@ -20,7 +20,31 @@ from twisted.python import log
 from octothorpe.asyncagi import AsyncAGIChannel, AsyncAGIProtocol
 
 
-"""Toy to originate an outgoing AsyncAGI call"""
+"""Originates an outgoing AsyncAGI call and says "hello, world!"
+
+This is very similar to what we did for agihello, but the way we get
+into AsyncAGI mode is a little different.
+
+For now (Asterisk 11.7.0), we need to write a little dialplan:
+
+    [originate]
+    exten => hello-world,1,AGI(agi:async)
+    same => n,Hangup
+
+This is very similar to the dialplan from agihello, but it is only
+intended to be called from an Originate action.  Since the eventual
+AsyncAGI event will contain a context/exten/priority triple, we use
+this to decide what logic to run when control is given to us.  To
+get this going, we originate using that triple.  The names don't
+matter--only that they match what we look for in our asyncAGIStarted
+method.
+
+Astute readers may note that we should be able to skip the dialplan
+entirely, originating directly to AGI(agi:async,hello-world).  But we
+can't, because Asterisk isn't relaying hello-world in the AGI
+environment.
+
+"""
 
 
 def _printDict(d):
@@ -31,6 +55,10 @@ def _printDict(d):
 class OriginatorChannel(AsyncAGIChannel):
     def asyncAGIStarted(self, context, extension, priority, env):
         print 'Call received: ', context, extension, priority, env
+
+        # Dialplan to get here is exactly as laid out in the module
+        # docstring.  The rest is identical to agihello's code.
+
         if context == 'originate' and extension == 'hello-world':
             print 'It is ours, executing hello-world'
             d = self.sendAGI('EXEC Playback hello-world')
