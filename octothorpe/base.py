@@ -163,7 +163,10 @@ class BaseAMIProtocol(LineOnlyReceiver):
 
         """
         fields['action'] = actionName
-        fields['actionid'] = actionid = str(uuid1())
+        if 'actionid' not in fields:
+            fields['actionid'] = str(uuid1())
+        actionid = fields['actionid']
+
         for field in fields:
             self.sendLine(field.lower() + ': ' + fields[field])
         self.sendLine('')

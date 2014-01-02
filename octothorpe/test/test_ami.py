@@ -625,4 +625,44 @@ class AMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(fields['channel'], 'Foo/202-0')
 
 
+    def test_originateCEP(self):
+        """Originate a call into a context/exten/priority"""
+
+        self._startAndSpawnChannel()
+        d = self.protocol.originateCEP('Foo/202', 'context', 'exten', 1)
+
+        fields = disassembleMessage(self.transport.value())
+        self.assertEqual(fields['action'], 'Originate')
+        self.assertIn('actionid', fields)
+        self.assertEqual(fields['channel'], 'Foo/202')
+        self.assertEqual(fields['context'], 'context')
+        self.assertEqual(fields['exten'], 'exten')
+        self.assertEqual(fields['priority'], '1')
+        self.assertEqual(fields['async'], 'true')
+
+        cbSuccess = Mock()
+        d.addCallback(cbSuccess)
+
+        self.protocol.dataReceived(
+            'Response: Success\r\n'
+            'ActionID: ' + fields['actionid'] + '\r\n'
+            'Message: Originate successfully queued\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(cbSuccess.mock_calls), 0)
+
+        self.protocol.dataReceived(
+            'Event: OriginateResponse\r\n'
+            'ActionID: ' + fields['actionid'] + '\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Context: context\r\n'
+            'Exten: exten\r\n'
+            'Priority: 1\r\n'
+            'Response: Success\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(cbSuccess.mock_calls), 1)
+
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

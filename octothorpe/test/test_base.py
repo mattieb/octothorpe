@@ -145,6 +145,21 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 0)
 
 
+    def test_sendOwnActionID(self):
+        """Send action with our own ActionID"""
+
+        self.protocol.started = True
+        d = self.protocol.sendAction(
+            'Foo',
+            {'key': 'Value', 'actionid': 'bar-baz-quux'}
+        )
+
+        fields = disassembleMessage(self.transport.value())
+        self.assertEqual(fields['action'], 'Foo')
+        self.assertEqual(fields['key'], 'Value')
+        self.assertEqual(fields['actionid'], 'bar-baz-quux')
+
+
     def _startAndSendAction(self):
         """Helper to start the protocol and send an action"""
 
@@ -161,6 +176,7 @@ class BaseAMIProtocolTestCase(unittest.TestCase):
         self.assertEqual(fields['key2'], 'Value2')
 
         return d, fields['actionid']
+
 
     def test_actionSuccess(self):
         """Send an action and get a success response"""

@@ -17,6 +17,9 @@ try:
     from hashlib import md5
 except ImportError: # pragma: no cover
     from md5 import md5
+from uuid import uuid1
+
+from twisted.internet.defer import Deferred
 
 from octothorpe.base import BaseAMIProtocol
 from octothorpe.channel import Channel
@@ -34,6 +37,7 @@ class AMIProtocol(BaseAMIProtocol):
     def connectionMade(self):
         BaseAMIProtocol.connectionMade(self)
         self.channels = {}
+        self.pendingOrigs = {}
 
 
     def _cbRespondToLoginChallenge(self, (fields, body), username, secret):
@@ -112,6 +116,54 @@ class AMIProtocol(BaseAMIProtocol):
         channel
 
         """
+
+
+    def originateQueued(self, (message, body), actionid):
+        """An Originate action has been queued.
+
+        (message, body) -- message dict and body (str or None) as
+        passed by a sendAction callback.
+
+        actionid -- ActionID from the original sendAction that will
+        also be present in the eventual OriginateResponse event.
+
+        """
+        d = self.pendingOrigs[actionid] = Deferred()
+        return d
+
+
+    def event_originateresponse(self, message):
+        """Handle an OriginateResponse event.
+
+        Calls back the Deferred originally returned by originateQueued.
+        
+        """
+        d = self.pendingOrigs.pop(message['actionid'])
+        d.callback(None)
+
+
+    def originateCEP(self, channel, context, exten, priority):
+        """Originate a call to a channel/exten/priority.
+
+        The returned Deferred will be called back when the
+        OriginateResponse event is received with a Success Response.
+
+        channel -- channel name to originate on (e.g. SIP/200)
+
+        context, exten, priority -- where to originate to
+
+        """
+        actionid = str(uuid1())
+        d = self.sendAction('Originate', {
+            'actionid': actionid,
+            'channel': channel,
+            'context': context,
+            'exten': exten,
+            'priority': str(priority),
+            'async': 'true',
+        })
+        d.addCallback(self.originateQueued, actionid)
+        return d
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

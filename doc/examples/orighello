@@ -20,7 +20,7 @@ from twisted.python import log
 from octothorpe.asyncagi import AsyncAGIChannel, AsyncAGIProtocol
 
 
-"""Toy to answer an incoming AsyncAGI call"""
+"""Toy to originate an outgoing AsyncAGI call"""
 
 
 def _printDict(d):
@@ -28,10 +28,10 @@ def _printDict(d):
         print '\t%r: %r' % (key, d[key])
 
 
-class AnswererChannel(AsyncAGIChannel):
+class OriginatorChannel(AsyncAGIChannel):
     def asyncAGIStarted(self, context, extension, priority, env):
-        print 'Call received: ', context, extension, priority
-        if context == 'default' and extension == '403':
+        print 'Call received: ', context, extension, priority, env
+        if context == 'originate' and extension == 'hello-world':
             print 'It is ours, executing hello-world'
             d = self.sendAGI('EXEC Playback hello-world')
             d.addCallback(self.playbackDone)
@@ -53,8 +53,8 @@ class AnswererChannel(AsyncAGIChannel):
             raise Exception(result)
 
 
-class Answerer(AsyncAGIProtocol):
-    channelClass = AnswererChannel
+class Originator(AsyncAGIProtocol):
+    channelClass = OriginatorChannel
 
     def __init__(self, username, secret):
         self.username = username
@@ -63,7 +63,20 @@ class Answerer(AsyncAGIProtocol):
 
     def bannerReceived(self, banner):
         AsyncAGIProtocol.bannerReceived(self, banner)
-        self.loginMD5(self.username, self.secret)
+        d = self.loginMD5(self.username, self.secret)
+        d.addCallback(self.loggedIn)
+
+
+    def loggedIn(self, result):
+        d = self.originateCEP('SIP/201', 'originate', 'hello-world', 1)
+        #d = self.sendAction('Originate', {
+        #    'channel': 'SIP/201',
+        #    'context': 'originate',
+        #    'exten': 'hello-world',
+        #    'priority': '1',
+        #    'async': 'true',
+        #})
+        d.addCallback(log.msg)
 
 
     def eventReceived(self, event, message):
@@ -92,12 +105,12 @@ if __name__ == '__main__':
     from twisted.python import log
     from sys import stderr
 
-    class AnswererFactory(ClientFactory):
+    class OriginatorFactory(ClientFactory):
         def buildProtocol(self, addr):
-            return Answerer('manager', 'secret')
+            return Originator('manager', 'secret')
 
     log.startLogging(stderr)
-    reactor.connectTCP('172.20.64.100', 5038, AnswererFactory())
+    reactor.connectTCP('172.20.64.100', 5038, OriginatorFactory())
     reactor.run()
 
 
