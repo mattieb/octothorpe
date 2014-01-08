@@ -82,6 +82,68 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
         )
 
 
+    def test_originateAsyncAGI(self):
+        """Originate an AsyncAGI call, calling back with channel"""
+
+        channel = self._spawnChannel()
+        d = self.protocol.originateAsyncAGI('Foo/202')
+        originated = Mock()
+        d.addCallback(originated)
+
+        message = disassembleMessage(self.transport.value())
+        self.assertEqual(message['action'], 'Originate')
+        self.assertIn('actionid', message)
+        self.assertEqual(message['application'], 'AGI')
+        self.assertEqual(message['data'], 'agi:async')
+        self.assertEqual(message['async'], 'true')
+
+        varName, octoId = message['variable'].split('=')
+        self.assertEqual(varName, 'AsyncOrigId')
+
+        self.protocol.dataReceived(
+            'Response: Success\r\n'
+            'ActionID: ' + message['actionid'] + '\r\n'
+            'Message: Originate successfully queued\r\n'
+            '\r\n'
+            'Event: VarSet\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Variable: AsyncOrigId\r\n'
+            'Value: ' + octoId + '\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+            'Event: OriginateResponse\r\n'
+            'ActionID: ' + message['actionid'] + '\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Response: Success\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(originated.mock_calls), 0)
+
+        env = quote(
+            'agi_request: async\n'
+            'agi_channel: Foo/202-0\n'
+            'agi_context: default\n'
+            'agi_extension: 400\n'
+            'agi_priority: 1\n'
+            '\n'
+        )
+        self.protocol.dataReceived(
+            'Event: AsyncAGI\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Env: ' + env + '\r\n'
+            'Subevent: Start\r\n'
+            '\r\n'
+        )
+        originated.assert_called_once_with((channel, {
+            'agi_request': 'async',
+            'agi_channel': 'Foo/202-0',
+            'agi_context': 'default',
+            'agi_extension': '400',
+            'agi_priority': '1',
+        }))
+
+
     def test_AGI(self):
         """Successfully run an AGI command"""
 

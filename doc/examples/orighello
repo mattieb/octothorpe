@@ -53,16 +53,10 @@ def _printDict(d):
 
 
 class OriginatorChannel(AsyncAGIChannel):
-    def asyncAGIStarted(self, context, extension, priority, env):
-        print 'Call received: ', context, extension, priority, env
-
-        # Dialplan to get here is exactly as laid out in the module
-        # docstring.  The rest is identical to agihello's code.
-
-        if context == 'originate' and extension == 'hello-world':
-            print 'It is ours, executing hello-world'
-            d = self.sendAGI('EXEC Playback hello-world')
-            d.addCallback(self.playbackDone)
+    def start(self):
+        print 'Executing hello-world'
+        d = self.sendAGI('EXEC Playback hello-world')
+        d.addCallback(self.playbackDone)
 
 
     def playbackDone(self, result):
@@ -87,6 +81,7 @@ class Originator(AsyncAGIProtocol):
     def __init__(self, username, secret):
         self.username = username
         self.secret = secret
+        AsyncAGIProtocol.__init__(self)
 
 
     def bannerReceived(self, banner):
@@ -96,15 +91,12 @@ class Originator(AsyncAGIProtocol):
 
 
     def loggedIn(self, result):
-        d = self.originateCEP('SIP/201', 'originate', 'hello-world', 1)
-        #d = self.sendAction('Originate', {
-        #    'channel': 'SIP/201',
-        #    'context': 'originate',
-        #    'exten': 'hello-world',
-        #    'priority': '1',
-        #    'async': 'true',
-        #})
-        d.addCallback(log.msg)
+        d = self.originateAsyncAGI('SIP/201')
+        d.addCallback(self.asyncAGIStarted)
+
+
+    def asyncAGIStarted(self, (channel, env)):
+        channel.start()
 
 
     def eventReceived(self, event, message):

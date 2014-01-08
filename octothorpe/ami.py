@@ -142,6 +142,18 @@ class AMIProtocol(BaseAMIProtocol):
         d.callback(None)
 
 
+    def _originate(self, channel, message):
+        actionid = str(uuid1())
+        message.update({
+            'actionid': actionid,
+            'channel': channel,
+            'async': 'true',
+        })
+        d = self.sendAction('Originate', message)
+        d.addCallback(self.originateQueued, actionid)
+        return d
+
+
     def originateCEP(self, channel, context, exten, priority):
         """Originate a call to a channel/exten/priority.
 
@@ -153,17 +165,11 @@ class AMIProtocol(BaseAMIProtocol):
         context, exten, priority -- where to originate to
 
         """
-        actionid = str(uuid1())
-        d = self.sendAction('Originate', {
-            'actionid': actionid,
-            'channel': channel,
+        return self._originate(channel, {
             'context': context,
             'exten': exten,
             'priority': str(priority),
-            'async': 'true',
         })
-        d.addCallback(self.originateQueued, actionid)
-        return d
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

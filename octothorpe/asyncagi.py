@@ -45,6 +45,20 @@ class AsyncAGIChannel(Channel):
         Channel.__init__(self, *args, **kwargs)
 
 
+    def asyncAGIStarted(self, context, extension, priority, env):
+        """AsyncAGI started on this channel from dialplan.
+
+        context -- dialplan context
+
+        extension -- dialplan extension
+
+        priority -- dialplan priority (int)
+
+        env -- AGI environment (dict)
+
+        """
+
+
     def event_asyncagi(self, message):
         """Respond to an AsyncAGI event"""
 
@@ -54,12 +68,24 @@ class AsyncAGIChannel(Channel):
                 if line:
                     key, value = line.split(': ')
                     env[key] = value
-            self.asyncAGIStarted(
-                env['agi_context'],
-                env['agi_extension'],
-                int(env['agi_priority']),
-                env
-            )
+
+            try:
+                self.asyncAGIStarted(
+                    env['agi_context'],
+                    env['agi_extension'],
+                    int(env['agi_priority']),
+                    env
+                )
+            except KeyError:
+                pass
+
+            try:
+                d = self.protocol.pendingAsyncOrigs.pop(
+                    self.variables['AsyncOrigId']
+                )
+                d.callback((self, env))
+            except KeyError:
+                pass
             
         elif message['subevent'] == 'Exec':
             commandid = message['commandid']
@@ -110,6 +136,40 @@ class AsyncAGIProtocol(AMIProtocol):
     """AsyncAGI-supporting AMI protocol"""
 
     channelClass = AsyncAGIChannel
+
+
+    def __init__(self, *args, **kwargs):
+        self.pendingAsyncOrigs = {}
+
+
+    def _cbOriginatedAGIExeced(self, result, origId):
+	"""Called when an AGIExec event is received for an origination
+	made by originateAsyncAGI.
+
+        Sets up a Deferred result for the eventual AsyncAGI event.
+
+        """
+        d = self.pendingAsyncOrigs[origId] = Deferred()
+        return d
+
+
+    def originateAsyncAGI(self, channel):
+        """Originate a call to AsyncAGI.
+
+        The returned Deferred will be called back when the AsyncAGI
+        session starts and will be passed an AsyncAGIChannel object.
+
+        channel -- channel name to originate on (e.g. SIP/200)
+
+        """
+        origId = str(uuid1())
+        d = self._originate(channel, {
+            'application': 'AGI',
+            'data': 'agi:async',
+            'variable': 'AsyncOrigId=' + origId,
+        })
+        d.addCallback(self._cbOriginatedAGIExeced, origId)
+        return d
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
