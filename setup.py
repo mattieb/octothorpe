@@ -13,7 +13,7 @@ setup(
     packages=['octothorpe', 'octothorpe.test'],
     requires=['Twisted'],
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         'Framework :: Twisted',
         'License :: OSI Approved :: MIT License',
         'Topic :: Communications :: Telephony',
