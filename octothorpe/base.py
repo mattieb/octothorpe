@@ -93,8 +93,9 @@ class BaseAMIProtocol(LineOnlyReceiver):
             self.protocolExceptionReceived(e)
 
 
+    noDropExceptions = [UnknownActionException]
     def protocolExceptionReceived(self, exception):
-        if exception.__class__ in [UnknownActionException]:
+        if exception.__class__ in self.noDropExceptions:
             log.msg('ignoring exception %s (%r)' % (exception, exception))
         else:
             log.err(exception)

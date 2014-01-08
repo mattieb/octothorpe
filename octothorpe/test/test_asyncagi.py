@@ -20,6 +20,8 @@ from twisted.trial import unittest
 from twisted.test import proto_helpers
 
 from octothorpe.asyncagi import AGIException, AsyncAGIProtocol, AsyncAGIChannel
+from octothorpe.asyncagi import UnknownCommandException
+from octothorpe.base import ProtocolError
 from octothorpe.test.test_base import disassembleMessage
 
 
@@ -49,6 +51,15 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
             }
         )
         return channel
+
+
+    def test_AGIExceptionRepr(self):
+        """repr() of an AGIException"""
+
+        self.assertEqual(
+            repr(AGIException(500, 'foobar')),
+            "<AGIException code=500 message='foobar'>"
+        )
 
 
     def test_asyncAGIStart(self):
@@ -210,6 +221,23 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
         self.assertEqual(len(cbSuccess.mock_calls), 0)
         self.assertFailure(d, AGIException)
         return d
+
+
+    def test_unknownCommandId(self):
+        """Connection is not dropped on an unknown command"""
+
+        self._spawnChannel()
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
+            'Event: AsyncAGI\r\n'
+            'SubEvent: Exec\r\n'
+            'Channel: Foo/202-0\r\n'
+            'CommandID: bar\r\n'
+            'Result: ' + quote('200 result=0\n') + '\r\n'
+            '\r\n'
+        )
+        self.assertFalse(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 0)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

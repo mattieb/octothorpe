@@ -37,6 +37,10 @@ class AGIException(Exception):
         return '<AGIException code=%d message=%r>' % (self.code, self.message)
 
 
+class UnknownCommandException(KeyError):
+    """Response to unknown command received"""
+
+
 class AsyncAGIChannel(Channel):
     """AsyncAGI-supporting channel"""
 
@@ -70,23 +74,21 @@ class AsyncAGIChannel(Channel):
                     env[key] = value
 
             try:
-                self.asyncAGIStarted(
-                    env['agi_context'],
-                    env['agi_extension'],
-                    int(env['agi_priority']),
-                    env
-                )
-            except KeyError:
-                pass
-
-            try:
                 d = self.protocol.pendingAsyncOrigs.pop(
                     self.variables['AsyncOrigId']
                 )
                 d.callback((self, env))
+                return # don't call CEP-based asyncAGIStarted
             except KeyError:
                 pass
             
+            self.asyncAGIStarted(
+                env['agi_context'],
+                env['agi_extension'],
+                int(env['agi_priority']),
+                env
+            )
+
         elif message['subevent'] == 'Exec':
             commandid = message['commandid']
             try:
@@ -136,6 +138,7 @@ class AsyncAGIProtocol(AMIProtocol):
     """AsyncAGI-supporting AMI protocol"""
 
     channelClass = AsyncAGIChannel
+    noDropExceptions = AMIProtocol.noDropExceptions + [UnknownCommandException]
 
 
     def __init__(self, *args, **kwargs):
