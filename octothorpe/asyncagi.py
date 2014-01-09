@@ -145,9 +145,9 @@ class AsyncAGIProtocol(AMIProtocol):
         self.pendingAsyncOrigs = {}
 
 
-    def _cbOriginatedAGIExeced(self, result, origId):
-	"""Called when an AGIExec event is received for an origination
-	made by originateAsyncAGI.
+    def _cbAsyncAGIOriginated(self, result, origId):
+        """Called when the OriginateRespone event is received for an
+        origination made by originateAsyncAGI.
 
         Sets up a Deferred result for the eventual AsyncAGI event.
 
@@ -160,9 +160,17 @@ class AsyncAGIProtocol(AMIProtocol):
         """Originate a call to AsyncAGI.
 
         The returned Deferred will be called back when the AsyncAGI
-        session starts and will be passed an AsyncAGIChannel object.
+        session starts and will be passed a tuple containing the new
+        AsyncAGIChannel object and the AGI environment dict.
 
         channel -- channel name to originate on (e.g. SIP/200)
+
+        This is implemented by requesting that a channel variable
+        AsyncOrigId is set on the channel in the Originate action
+        with a UUID.  The origination callback then sets up another
+        Deferred that will fire when an AsyncAGI event is received
+        on a channel with the appropriate AsyncOrigId channel
+        variable set.
 
         """
         origId = str(uuid1())
@@ -171,7 +179,7 @@ class AsyncAGIProtocol(AMIProtocol):
             'data': 'agi:async',
             'variable': 'AsyncOrigId=' + origId,
         })
-        d.addCallback(self._cbOriginatedAGIExeced, origId)
+        d.addCallback(self._cbAsyncAGIOriginated, origId)
         return d
 
 

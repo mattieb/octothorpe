@@ -20,29 +20,24 @@ from twisted.python import log
 from octothorpe.asyncagi import AsyncAGIChannel, AsyncAGIProtocol
 
 
-"""Originates an outgoing AsyncAGI call and says "hello, world!"
+"""Originates an outgoing AsyncAGI call and says "hello, world!".
 
 This is very similar to what we did for agihello, but the way we get
 into AsyncAGI mode is a little different.
 
-For now (Asterisk 11.7.0), we need to write a little dialplan:
+On the protocol, we call originateAsyncAGI with a channel parameter.
+(While this is actually called "channel" on AMI, it's actually what you
+would use as the parameter to the Dial application.  In this example
+case, we'll use SIP/201 to dial to our SIP phone.)
 
-    [originate]
-    exten => hello-world,1,AGI(agi:async)
-    same => n,Hangup
+originateAsyncAGI returns a Deferred that we'll now attach a callback
+to.  This callback calls back when the AsyncAGI session is started, and
+passes a new AsyncAGIChannel object, ready-to-use.  In our callback,
+we then call start() on our new AsyncAGIChannel, which in turn starts
+executing AGI on it.
 
-This is very similar to the dialplan from agihello, but it is only
-intended to be called from an Originate action.  Since the eventual
-AsyncAGI event will contain a context/exten/priority triple, we use
-this to decide what logic to run when control is given to us.  To
-get this going, we originate using that triple.  The names don't
-matter--only that they match what we look for in our asyncAGIStarted
-method.
-
-Astute readers may note that we should be able to skip the dialplan
-entirely, originating directly to AGI(agi:async,hello-world).  But we
-can't, because Asterisk isn't relaying hello-world in the AGI
-environment.
+For details of how this works, check the docstring for
+originateAsyncAGI.
 
 """
 
