@@ -93,6 +93,25 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
         )
 
 
+    def test_originateWithCallerId(self):
+        """Originate an AsyncAGI call with caller ID
+        
+        Only tests the Caller ID kwarg.  The remainder of the originate
+        functionality is tested by test_originateAsyncAGI.
+        
+        """
+        channel = self._spawnChannel()
+        d = self.protocol.originateAsyncAGI('Foo/202', callerId='Bar <303>')
+
+        message = disassembleMessage(self.transport.value())
+        self.assertEqual(message['action'], 'Originate')
+        self.assertIn('actionid', message)
+        self.assertEqual(message['application'], 'AGI')
+        self.assertEqual(message['data'], 'agi:async')
+        self.assertEqual(message['async'], 'true')
+        self.assertEqual(message['callerid'], 'Bar <303>')
+
+
     def test_originateAsyncAGI(self):
         """Originate an AsyncAGI call, calling back with channel"""
 

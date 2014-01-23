@@ -142,13 +142,17 @@ class AMIProtocol(BaseAMIProtocol):
         d.callback(None)
 
 
-    def _originate(self, channel, message):
+    def _originate(self, channel, message, callerId=None):
         actionid = str(uuid1())
         message.update({
             'actionid': actionid,
             'channel': channel,
             'async': 'true',
         })
+
+        if callerId is not None:
+            message['callerid'] = callerId
+
         d = self.sendAction('Originate', message)
         d.addCallback(self.originateQueued, actionid)
         return d

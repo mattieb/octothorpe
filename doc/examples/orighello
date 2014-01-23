@@ -86,7 +86,7 @@ class Originator(AsyncAGIProtocol):
 
 
     def loggedIn(self, result):
-        d = self.originateAsyncAGI('SIP/201')
+        d = self.originateAsyncAGI('SIP/201', callerId='Caller <301>')
         d.addCallback(self.asyncAGIStarted)
 
 

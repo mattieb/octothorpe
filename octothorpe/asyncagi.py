@@ -156,7 +156,7 @@ class AsyncAGIProtocol(AMIProtocol):
         return d
 
 
-    def originateAsyncAGI(self, channel):
+    def originateAsyncAGI(self, channel, callerId=None):
         """Originate a call to AsyncAGI.
 
         The returned Deferred will be called back when the AsyncAGI
@@ -164,6 +164,8 @@ class AsyncAGIProtocol(AMIProtocol):
         AsyncAGIChannel object and the AGI environment dict.
 
         channel -- channel name to originate on (e.g. SIP/200)
+
+        callerId -- caller ID to originate with (e.g. 'Name <300>')
 
         This is implemented by requesting that a channel variable
         AsyncOrigId is set on the channel in the Originate action
@@ -178,7 +180,7 @@ class AsyncAGIProtocol(AMIProtocol):
             'application': 'AGI',
             'data': 'agi:async',
             'variable': 'AsyncOrigId=' + origId,
-        })
+        }, callerId=callerId)
         d.addCallback(self._cbAsyncAGIOriginated, origId)
         return d
 
