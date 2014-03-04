@@ -5,7 +5,7 @@ from distutils.core import setup
 
 setup(
     name='octothorpe',
-    version='0.2',
+    version='0.3',
     description='Asterisk Manager Interface library for the Twisted engine',
     author='Matt Behrens',
     author_email='matt@zigg.com',
