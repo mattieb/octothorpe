@@ -28,6 +28,15 @@ from octothorpe.channel import Channel
 """Higher-level Asterisk Manager Interface protocol"""
 
 
+class OriginateException(Exception):
+    def __init__(self, reason):
+        self.reason = reason
+
+
+    def __repr__(self):
+        return '<%s reason=%d>' % (self.__class__.__name__, self.reason)
+
+
 class AMIProtocol(BaseAMIProtocol):
     """AMI protocol"""
 
@@ -59,16 +68,40 @@ class AMIProtocol(BaseAMIProtocol):
         BaseAMIProtocol behavior.
 
         """
+	# Old-school (circa 1.4) rename events use the 'Oldname'
+        # key instead of 'Channel'.
+
         if 'oldname' in message and event == 'rename':
             names = [message['oldname']]
+
+        # Most messages with a 'Channel' key can be directed to the
+        # Channel named therein.  Some cannot.
+
         elif 'channel' in message and event not in ['channelreload',
                                                     'newchannel']:
-            names = [message['channel']]
+
+            # Most OriginateResponses can be directed to their Channel.
+            # 'Failure' responses cannot.
+
+            if (event == 'originateresponse' and
+                message['response'] == 'Failure'):
+                names = []
+
+            else:
+                names = [message['channel']]
+
+        # Link events are distributed to Channels named by 'Channel1'
+        # and 'Channel2'.
+        
         elif (event in ('link', 'unlink') and
               'channel1' in message and 'channel2' in message):
-            names = [message['channel1'], message['channel2']]            
+            names = [message['channel1'], message['channel2']]
+
+        # Dial events are distributed to the Channel named in 'Source'.
+
         elif 'source' in message and event == 'dial':
             names = [message['source']]
+
         else:
             names = []
 
@@ -139,7 +172,10 @@ class AMIProtocol(BaseAMIProtocol):
         
         """
         d = self.pendingOrigs.pop(message['actionid'])
-        d.callback(None)
+        if message['response'] == 'Failure':
+            d.errback(OriginateException(int(message['reason'])))
+        else:
+            d.callback(None)
 
 
     def _originate(self, channel, message, callerId=None):

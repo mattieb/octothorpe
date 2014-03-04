@@ -112,13 +112,9 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
         self.assertEqual(message['callerid'], 'Bar <303>')
 
 
-    def test_originateAsyncAGI(self):
-        """Originate an AsyncAGI call, calling back with channel"""
-
+    def _setUpOriginateAsyncAGI(self):
         channel = self._spawnChannel()
         d = self.protocol.originateAsyncAGI('Foo/202')
-        originated = Mock()
-        d.addCallback(originated)
 
         message = disassembleMessage(self.transport.value())
         self.assertEqual(message['action'], 'Originate')
@@ -141,6 +137,39 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
             'Value: ' + octoId + '\r\n'
             'Uniqueid: 1234567890.0\r\n'
             '\r\n'
+        )
+
+        return d, channel, message
+
+
+    def test_originateAsyncAGIFail(self):
+        """Fail to originate an AsyncAGI call"""
+
+        d, channel, message = self._setUpOriginateAsyncAGI()
+        origFailed = Mock()
+        d.addErrback(origFailed)
+
+        self.protocol.dataReceived(
+            'Event: OriginateResponse\r\n'
+            'ActionID: ' + message['actionid'] + '\r\n'
+            'Channel: Foo/202\r\n'
+            'Reason: 5\r\n'
+            'Response: Failure\r\n'
+            'Uniqueid: <null>\r\n'
+            '\r\n'
+        )
+
+        self.assertEqual(len(origFailed.mock_calls), 1)
+
+
+    def test_originateAsyncAGI(self):
+        """Originate an AsyncAGI call, calling back with channel"""
+
+        d, channel, message = self._setUpOriginateAsyncAGI()
+        originated = Mock()
+        d.addCallback(originated)
+
+        self.protocol.dataReceived(
             'Event: OriginateResponse\r\n'
             'ActionID: ' + message['actionid'] + '\r\n'
             'Channel: Foo/202-0\r\n'
