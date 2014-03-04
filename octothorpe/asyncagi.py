@@ -146,7 +146,7 @@ class AsyncAGIProtocol(AMIProtocol):
 
 
     def _cbAsyncAGIOriginated(self, result, origId):
-        """Called when the OriginateRespone event is received for an
+        """Called when the OriginateResponse event is received for an
         origination made by originateAsyncAGI.
 
         Sets up a Deferred result for the eventual AsyncAGI event.
