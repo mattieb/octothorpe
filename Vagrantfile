@@ -16,6 +16,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   # Bridge to a physical network if you want to attach physical phones.
   # Beware, though: the VM won't be firewalled!
+  #
+  # I've specified 'ASK' to force Vagrant to ask you for the interface
+  # you want to use.
   #config.vm.network :public_network, :bridge => 'ASK'
 
   config.vm.provision :ansible do |ansible|
