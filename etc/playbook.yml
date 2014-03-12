@@ -31,9 +31,7 @@
     - name: asterisk installation
       yum: name=asterisk state=present
 
-    ###
-
-    # In Ansible 1.4, this will work first try.
+    # Try to link /etc/asterisk to our /vagrant share…
 
     - name: link asterisk config directory 
       file: src=/vagrant/etc/asterisk dest=/etc/asterisk state=link force=yes
@@ -41,8 +39,8 @@
       ignore_errors: yes
       notify: restart asterisk
 
-    # In Ansible 1.3, this is needed to catch failure of the above, as
-    # directories cannot be forced to links.
+    # …which fails first time, so remove it and readd it when that
+    # happens.
 
     - name: remove asterisk config directory
       file: name=/etc/asterisk state=absent

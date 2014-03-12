@@ -1,6 +1,12 @@
 *.pyc
 *.swp
+.Python
 .coverage
+.vagrant
+MANIFEST
 _trial_temp
 dist
-MANIFEST
+include
+lib
+share
+vagrant_ansible_inventory_default

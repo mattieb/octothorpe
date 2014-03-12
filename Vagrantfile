@@ -1,0 +1,25 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# This Vagrantfile will spin up a CentOS 6 box with Asterisk installed
+# from Digium's AsteriskNOW repository.
+
+# Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
+VAGRANTFILE_API_VERSION = "2"
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "centos65"
+  config.vm.box_url = "http://developer.nrel.gov/downloads/vagrant-boxes/CentOS-6.5-x86_64-v20140311.box"
+
+  # You can attach softphones via this network.
+  config.vm.network :private_network, ip: "172.20.64.100"
+
+  # Bridge to a physical network if you want to attach physical phones.
+  # Beware, though: the VM won't be firewalled!
+  #config.vm.network :public_network, :bridge => 'ASK'
+
+  config.vm.provision :ansible do |ansible|
+    ansible.playbook = "etc/playbook.yml"
+  end
+
+end
