@@ -22,7 +22,7 @@ from mock import Mock
 from twisted.trial import unittest
 from twisted.test import proto_helpers
 
-from octothorpe.ami import AMIProtocol
+from octothorpe.ami import AMIProtocol, OriginateException
 from octothorpe.base import ActionException, ProtocolError
 from octothorpe.channel import Channel, STATE_DOWN
 from octothorpe.test.test_base import disassembleMessage
@@ -663,6 +663,15 @@ class AMIProtocolTestCase(unittest.TestCase):
             '\r\n'
         )
         self.assertEqual(len(cbSuccess.mock_calls), 1)
+
+
+    def test_OriginateExceptionRepr(self):
+        """repr() of an OriginateException"""
+
+        self.assertEqual(
+            repr(OriginateException(42)),
+            "<OriginateException reason=42>"
+        )
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
