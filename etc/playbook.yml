@@ -56,36 +56,12 @@
     - name: enable asterisk
       service: name=asterisk enabled=yes
 
-    - name: bootstrap epel-release install
-      copy: src=ansible-bootstrap-epel.repo
-            dest=/etc/yum.repos.d/
-            owner=root group=root mode=0644
-
-    - name: epel-release install
-      yum: name=epel-release
-           enablerepo=ansible-bootstrap-epel
-           state=present
-
-    - name: epel repository restrict
-      ini_file: dest=/etc/yum.repos.d/epel.repo
-                section=epel
-                option=includepkgs
-                value='python-virtualenv python-pip'
-
-    - name: epel repository enable
-      ini_file: dest=/etc/yum.repos.d/epel.repo
-                section=epel
-                option=enabled
-                value=1
-
-    - name: python virtualenv/pip installation
-      yum: pkg={{ item }} state=present
-      with_items:
-        - python-virtualenv
-        - python-pip
-
     - name: disable/stop iptables
       service: name=iptables enabled=no state=stopped
+
+    - name: install /vagrant mount udev rule
+      copy: src=50-vagrant-mount.rules dest=/etc/udev/rules.d/
+            owner=root group=root mode=0644
 
   handlers:
 

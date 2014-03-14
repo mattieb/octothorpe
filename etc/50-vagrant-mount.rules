@@ -1,0 +1,7 @@
+# Based on <http://razius.com/articles/launching-services-after-vagrant-mount/>.
+# Thanks, razius!
+#
+# Start on mount
+SUBSYSTEM=="bdi",ACTION=="add",RUN+="/sbin/service asterisk restart"
+# Stop on unmount
+SUBSYSTEM=="bdi",ACTION=="remove",RUN+="/sbin/service asterisk stop"
