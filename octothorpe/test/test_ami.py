@@ -674,6 +674,40 @@ class AMIProtocolTestCase(unittest.TestCase):
         )
 
 
+    def test_invalidDTMF(self):
+        """Invalid DTMF messages"""
+
+        channel = self._startAndSpawnChannel()
+
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
+            'Event: DTMF\r\n'
+            'Direction: Received\r\n'
+            'Begin: No\r\n'
+            'End: No\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            'Digit: 5\r\n'
+            '\r\n'
+        )
+        self.assertTrue(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
+
+        lose = self.transport.loseConnection = Mock()
+        self.protocol.dataReceived(
+            'Event: DTMF\r\n'
+            'Direction: Upside-down\r\n'
+            'Begin: Yes\r\n'
+            'End: No\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            'Digit: 5\r\n'
+            '\r\n'
+        )
+        self.assertTrue(lose.called)
+        self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 1)
+
+
     def test_unexpectedDTMF(self):
         """Unexpected (e.g. outside a capture window) DTMF received"""
 
