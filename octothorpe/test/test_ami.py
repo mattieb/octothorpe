@@ -674,4 +674,133 @@ class AMIProtocolTestCase(unittest.TestCase):
         )
 
 
+    def test_unexpectedDTMF(self):
+        """Unexpected (e.g. outside a capture window) DTMF received"""
+
+        channel = self._startAndSpawnChannel()
+        inDTMFBegun = channel.incomingDTMFBegun = Mock()
+        inDTMFEnded = channel.incomingDTMFEnded = Mock()
+        outDTMFBegun = channel.outgoingDTMFBegun = Mock()
+        outDTMFEnded = channel.outgoingDTMFEnded = Mock()
+
+        self.protocol.dataReceived(
+            'Event: DTMF\r\n'
+            'Direction: Received\r\n'
+            'Begin: Yes\r\n'
+            'End: No\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            'Digit: 5\r\n'
+            '\r\n'
+        )
+        inDTMFBegun.assert_called_once_with('5')
+        self.assertEqual(len(inDTMFEnded.mock_calls), 0)
+        self.assertEqual(len(outDTMFBegun.mock_calls), 0)
+        self.assertEqual(len(outDTMFEnded.mock_calls), 0)
+
+        self.protocol.dataReceived(
+            'Event: DTMF\r\n'
+            'Direction: Received\r\n'
+            'Begin: No\r\n'
+            'End: Yes\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            'Digit: 5\r\n'
+            '\r\n'
+        )
+        inDTMFEnded.assert_called_once_with('5')
+        self.assertEqual(len(outDTMFBegun.mock_calls), 0)
+        self.assertEqual(len(outDTMFEnded.mock_calls), 0)
+
+
+    def test_outgoingDTMF(self):
+        """DTMF sent"""
+
+        channel = self._startAndSpawnChannel()
+        inDTMFBegun = channel.incomingDTMFBegun = Mock()
+        inDTMFEnded = channel.incomingDTMFEnded = Mock()
+        outDTMFBegun = channel.outgoingDTMFBegun = Mock()
+        outDTMFEnded = channel.outgoingDTMFEnded = Mock()
+
+        self.protocol.dataReceived(
+            'Event: DTMF\r\n'
+            'Direction: Sent\r\n'
+            'Begin: Yes\r\n'
+            'End: No\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            'Digit: 5\r\n'
+            '\r\n'
+        )
+        outDTMFBegun.assert_called_once_with('5')
+        self.assertEqual(len(inDTMFBegun.mock_calls), 0)
+        self.assertEqual(len(inDTMFEnded.mock_calls), 0)
+        self.assertEqual(len(outDTMFEnded.mock_calls), 0)
+
+        self.protocol.dataReceived(
+            'Event: DTMF\r\n'
+            'Direction: Sent\r\n'
+            'Begin: No\r\n'
+            'End: Yes\r\n'
+            'Channel: Foo/202-0\r\n'
+            'Uniqueid: 1234567890.0\r\n'
+            'Digit: 5\r\n'
+            '\r\n'
+        )
+        outDTMFEnded.assert_called_once_with('5')
+        self.assertEqual(len(inDTMFBegun.mock_calls), 0)
+        self.assertEqual(len(inDTMFEnded.mock_calls), 0)
+
+
+    def test_captureDTMF(self):
+        """Capture DTMF"""
+
+        def dtmf(digits):
+            for digit in digits:
+                self.protocol.dataReceived(
+                    'Event: DTMF\r\n'
+                    'Direction: Received\r\n'
+                    'Begin: Yes\r\n'
+                    'End: No\r\n'
+                    'Channel: Foo/202-0\r\n'
+                    'Uniqueid: 1234567890.0\r\n'
+                    'Digit: %s\r\n'
+                    '\r\n'
+                    'Event: DTMF\r\n'
+                    'Direction: Received\r\n'
+                    'Begin: No\r\n'
+                    'End: Yes\r\n'
+                    'Channel: Foo/202-0\r\n'
+                    'Uniqueid: 1234567890.0\r\n'
+                    'Digit: %s\r\n'
+                    '\r\n' % (digit, digit)
+                )
+
+        channel = self._startAndSpawnChannel()
+        
+        d = channel.captureDTMF(limit=5)
+        gotDTMF = Mock()
+        d.addCallback(gotDTMF)
+        dtmf('12345')
+        gotDTMF.assert_called_once_with('12345')
+
+        d = channel.captureDTMF(limit=5)
+        gotDTMF = Mock()
+        d.addCallback(gotDTMF)
+        dtmf('1234#')
+        gotDTMF.assert_called_once_with('1234')
+
+        d = channel.captureDTMF(limit=5, terminator=None)
+        gotDTMF = Mock()
+        d.addCallback(gotDTMF)
+        dtmf('1234#')
+        gotDTMF.assert_called_once_with('1234#')
+
+        d = channel.captureDTMF(limit=5)
+        gotDTMF = Mock()
+        d.addCallback(gotDTMF)
+        dtmf('1234')
+        self.assertEqual(len(gotDTMF.mock_calls), 0)
+
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

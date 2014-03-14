@@ -13,6 +13,8 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
+from twisted.internet.defer import Deferred
+
 from octothorpe.base import ProtocolError
 
 
@@ -98,6 +100,8 @@ class Channel(object):
         self.variables = {}
         self.extensions = []
         self.linkedTo = None
+
+        self.capturingDTMF = False
 
 
     def sendAction(self, actionName, fields):
@@ -296,6 +300,101 @@ class Channel(object):
         dialStatus -- dial status value or None if not present
 
         """
+
+
+    def event_dtmf(self, message):
+        """Handle a DTMF event."""
+
+        direction = message['direction']
+        if direction == 'Received':
+            received = True
+        elif direction == 'Sent':
+            received = False
+        else:
+            raise ProtocolError('unknown DTMF direction %r' % direction)
+
+        if message['begin'] == 'Yes':
+
+            if received:
+                self.incomingDTMFBegun(message['digit'])
+
+            else:
+                self.outgoingDTMFBegun(message['digit'])
+
+        elif message['end'] == 'Yes':
+
+            if received:
+
+                if self.capturingDTMF:
+                    limit, terminator, d, digits = self.capturingDTMF 
+                    digit = message['digit']
+                    if digit == terminator:
+                        d.callback(''.join(digits))
+                    else:
+                        digits.append(digit)
+                        if len(digits) == limit:
+                            d.callback(''.join(digits))
+
+                else:
+                    self.incomingDTMFEnded(message['digit'])
+                
+            else:
+                self.outgoingDTMFEnded(message['digit'])
+
+        else:
+            raise ProtocolError('DTMF neither begun nor ended')
+
+
+    def incomingDTMFBegun(self, digit):
+        """Called when incoming DTMF begins, if not being captured.
+
+        digit -- DTMF digit (str)
+
+        """
+
+
+    def incomingDTMFEnded(self, digit):
+        """Called when incoming DTMF ends, if not being captured.
+
+        digit -- DTMF digit (str)
+
+        """
+
+
+    def outgoingDTMFBegun(self, digit):
+        """Called when outgoing DTMF begins.
+
+        digit -- DTMF digit (str)
+
+        """
+
+
+    def outgoingDTMFEnded(self, digit):
+        """Called when outgoing DTMF ends.
+
+        digit -- DTMF digit (str)
+
+        """
+
+
+    def captureDTMF(self, limit, terminator='#'):
+        """Capture DTMF.
+
+        Returns a callback that will eventually return the captured
+        DTMF as a string.
+
+        limit -- number of digits to capture
+
+        terminator -- digit to terminate the capture prematurely, or
+        None if there should be no termination (terminator will not be
+        returned)
+
+        """
+
+        d = Deferred()
+        digits = []
+        self.capturingDTMF = (limit, terminator, d, digits)
+        return d
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
