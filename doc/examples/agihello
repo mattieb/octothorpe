@@ -89,6 +89,7 @@ class Answerer(AsyncAGIProtocol):
     def __init__(self, username, secret):
         self.username = username
         self.secret = secret
+        AsyncAGIProtocol.__init__(self)
 
 
     def bannerReceived(self, banner):
