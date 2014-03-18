@@ -223,6 +223,19 @@ class AMIProtocolTestCase(unittest.TestCase):
         return channel
 
 
+    def test_unknownChannel(self):
+        """Event received for unknown channel"""
+
+        channel = self._startAndSpawnChannel()
+        protoHandler = self.protocol.event_baz = Mock()
+        self.protocol.dataReceived(
+            'Event: Baz\r\n'
+            'Channel: Bar/303-0\r\n'
+            '\r\n'
+        )
+        protoHandler.assert_called_once_with({'channel': 'Bar/303-0'})
+
+
     def test_newState(self):
         """Channel state changed"""
 

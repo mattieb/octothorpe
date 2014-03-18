@@ -107,9 +107,11 @@ class AMIProtocol(BaseAMIProtocol):
 
         eventHandlers = []
         for name in names:
-            eventHandler = getattr(self.channels[name], 'event_' + event, None)
-            if eventHandler:
-                eventHandlers.append(eventHandler)
+            channel = self.channels.get(name)
+            if name is not None:
+                eventHandler = getattr(channel, 'event_' + event, None)
+                if eventHandler:
+                    eventHandlers.append(eventHandler)
 
         if eventHandlers:
             for eventHandler in eventHandlers:
