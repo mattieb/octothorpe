@@ -19,7 +19,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   #
   # I've specified 'ASK' to force Vagrant to ask you for the interface
   # you want to use.
-  #config.vm.network :public_network, :bridge => 'ASK'
+  #config.vm.network :public_network, ip: "172.25.75.100", :bridge => 'ASK'
 
   config.vm.provision :ansible do |ansible|
     ansible.playbook = "etc/playbook.yml"
