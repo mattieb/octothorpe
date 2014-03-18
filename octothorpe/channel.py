@@ -329,10 +329,12 @@ class Channel(object):
                     limit, terminator, d, digits = self.capturingDTMF 
                     digit = message['digit']
                     if digit == terminator:
+                        self.capturingDTMF = False
                         d.callback(''.join(digits))
                     else:
                         digits.append(digit)
                         if len(digits) == limit:
+                            self.capturingDTMF = False
                             d.callback(''.join(digits))
 
                 else:

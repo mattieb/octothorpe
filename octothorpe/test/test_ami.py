@@ -824,6 +824,8 @@ class AMIProtocolTestCase(unittest.TestCase):
                 )
 
         channel = self._startAndSpawnChannel()
+
+        # Terminator is not required if we hit limit
         
         d = channel.captureDTMF(limit=5)
         gotDTMF = Mock()
@@ -831,23 +833,27 @@ class AMIProtocolTestCase(unittest.TestCase):
         dtmf('12345')
         gotDTMF.assert_called_once_with('12345')
 
+        # Terminator is not passed through
+
         d = channel.captureDTMF(limit=5)
         gotDTMF = Mock()
         d.addCallback(gotDTMF)
-        dtmf('1234#')
+        dtmf('1234')
+        self.assertFalse(gotDTMF.called)
+        dtmf('#')
         gotDTMF.assert_called_once_with('1234')
+
+        # Tones before capture start should not show in result
+
+        dtmf('A')
+
+        # If terminator is None, # should pass through
 
         d = channel.captureDTMF(limit=5, terminator=None)
         gotDTMF = Mock()
         d.addCallback(gotDTMF)
         dtmf('1234#')
         gotDTMF.assert_called_once_with('1234#')
-
-        d = channel.captureDTMF(limit=5)
-        gotDTMF = Mock()
-        d.addCallback(gotDTMF)
-        dtmf('1234')
-        self.assertEqual(len(gotDTMF.mock_calls), 0)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
