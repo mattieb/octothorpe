@@ -5,8 +5,6 @@
 
   tasks:
 
-    ###
-
     # Bootstrap repositories installed with RPMs.  Based on an "a-ha!"
     # moment from <http://stackoverflow.com/a/14155303/722332>.
 
@@ -20,7 +18,8 @@
            enablerepo=ansible-bootstrap-asterisk-current
            state=present
 
-    ###
+    # The standard asterisk-11 repository is now present; permanently
+    # enable it and install Asterisk.
 
     - name: asterisk-11 repository enable
       ini_file: dest=/etc/yum.repos.d/centos-asterisk-11.repo
@@ -51,7 +50,8 @@
       when: link_asterisk_config|failed
       notify: restart asterisk
 
-    ###
+    # Enable Asterisk, and set it to be restarted when /vagrant is
+    # mounted.
 
     - name: enable asterisk
       service: name=asterisk enabled=yes
