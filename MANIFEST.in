@@ -1,0 +1,1 @@
+include MANIFEST.in README.rst Vagrantfile doc/examples/* etc/* requirements.txt
