@@ -20,7 +20,7 @@ from distutils.core import setup
 
 setup(
     name='octothorpe',
-    version='0.4',
+    version='0.4.1',
     description='Asterisk Manager Interface library for the Twisted engine',
     long_description=open('README.rst', 'r').read(),
     author='Matt Behrens',
