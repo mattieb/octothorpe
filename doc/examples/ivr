@@ -1,0 +1,195 @@
+#!/usr/bin/env python
+#
+# Copyright (c) 2013, 2014 Matt Behrens <matt@zigg.com>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+
+from twisted.internet.defer import inlineCallbacks
+from twisted.python import log
+
+from octothorpe.asyncagi import AsyncAGIChannel, AsyncAGIProtocol
+
+
+"""A basic IVR.
+
+For this to work, you need a dialplan hook on an incoming extension
+that passes the call to AsyncAGI, like so:
+
+    [context]
+    exten => 400,1,AGI(agi:async)
+    same => n,Hangup
+
+(See agihello for more information on how AsyncAGI works.)
+
+As in the dtmf example, we use inlineCallbacks here as well.
+
+"""
+
+
+def _printDict(d):
+    for key in sorted(d.keys()):
+        print '\t%r: %r' % (key, d[key])
+
+
+
+class AnswererChannel(AsyncAGIChannel):
+    def asyncAGIStarted(self, context, extension, priority, env):
+        print 'Call received:', context, extension, priority
+        if context == 'default' and extension == '403':
+            print 'It is ours'
+            try:
+                self.handleCall()
+            except Exception, e:
+                print 'Breaking AsyncAGI session'
+                self.sendAGI('ASYNCAGI BREAK')
+
+
+    @inlineCallbacks
+    def playback(self, sounds, background=False):
+        if background:
+            verb = 'Background'
+        else:
+            verb = 'Playback'
+        print verb, sounds
+        result = yield self.sendAGI('EXEC ' + verb + ' ' + sounds)
+
+        # Playback returns 0 on success.  Background may return 0 or
+        # the ASCII code point for a DTMF digit.
+
+        if (result[0] != 0 and 
+            (result[0] in range(256) and
+             chr(result[0]) not in '0123456789ABCD#*')):
+            print 'Hanging up due to exception'
+            yield self.sendAGI('HANGUP')
+            raise Exception(result)
+
+
+    @inlineCallbacks
+    def handleCall(self):
+        self.playback('silence/1')
+
+        # Get a password first.  Loop until we get it successfully.
+
+        self.playback('agent-pass', background=True)
+
+        while True:
+            print 'Capturing password'
+            digits = yield self.captureDTMF(10)
+
+            print 'Captured:', digits
+            if digits == "12345":
+                break
+            self.playback('auth-incorrect', background=True)
+
+        self.playback('auth-thankyou')
+
+        # Main menu
+
+        while True:
+            self.playback(
+                'silence/1&'
+                'vm-press&digits/1&dir-multi2&pbx-transfer&'
+                'silence/1&'
+                'vm-press&digits/2&dir-multi2&vm-goodbye',
+                background=True
+            )
+
+            print 'Capturing menu selection'
+            digit = yield self.captureDTMF(1)
+
+            print 'Captured:', digit
+            if digit == "1":
+                self.playback('vm-enter-num-to-call', background=True)
+
+                print 'Capturing number to call'
+                number = yield self.captureDTMF(3)
+
+                self.playback('transfer')
+                print 'Dialing:', number
+                result = yield self.sendAGI('EXEC Dial SIP/' + number)
+                if result[0] != -1:
+                    self.playback('followme/sorry')
+
+            elif digit == "2":
+                break
+
+            else:
+                self.playback('confbridge-invalid')
+
+        self.playback('demo-thanks')
+
+        print 'Hanging up'
+        result = yield self.sendAGI('HANGUP')
+        if result[0] != 1:
+            raise Exception(result)
+
+
+    def hungUp(self, a, b):
+        print 'Channel hung up; cause',a,b
+
+
+class Answerer(AsyncAGIProtocol):
+    channelClass = AnswererChannel
+
+    def __init__(self, username, secret, verbose=False):
+        self.username = username
+        self.secret = secret
+        self.verbose = verbose
+        AsyncAGIProtocol.__init__(self)
+
+
+    def bannerReceived(self, banner):
+        AsyncAGIProtocol.bannerReceived(self, banner)
+        self.loginMD5(self.username, self.secret)
+
+
+    def eventReceived(self, event, message):
+        if self.verbose:
+            print 'Event received:', event
+            _printDict(message)
+        AsyncAGIProtocol.eventReceived(self, event, message)
+
+
+    def responseReceived(self, response, message, body):
+        if self.verbose:
+            print 'Response received:', response
+            _printDict(message)
+            if body:
+                print '\tbody: %r' % (body,)
+        AsyncAGIProtocol.responseReceived(self, response, message, body)
+
+
+    def sendAction(self, action, fields):
+        if self.verbose:
+            print 'Sending action:', action
+            _printDict(fields)
+        return AsyncAGIProtocol.sendAction(self, action, fields)
+
+
+if __name__ == '__main__':
+    from twisted.internet import reactor
+    from twisted.internet.protocol import ClientFactory
+    from twisted.python import log
+    from sys import stderr
+
+    class AnswererFactory(ClientFactory):
+        def buildProtocol(self, addr):
+            return Answerer('manager', 'secret', verbose=False)
+
+    log.startLogging(stderr)
+    reactor.connectTCP('172.20.64.100', 5038, AnswererFactory())
+    reactor.run()
+
+
+# vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
