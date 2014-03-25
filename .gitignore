@@ -6,6 +6,7 @@
 .vagrant
 MANIFEST
 _trial_temp
+bin
 dist
 include
 lib
