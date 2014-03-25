@@ -67,7 +67,7 @@ if __name__ == '__main__':
             return ChannelWatcher('manager', 'secret')
 
     log.startLogging(stderr)
-    reactor.connectTCP('localhost', 5038, ChannelWatcherFactory())
+    reactor.connectTCP('172.20.64.100', 5038, ChannelWatcherFactory())
     reactor.run()
 
 
