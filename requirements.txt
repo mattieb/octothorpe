@@ -8,5 +8,4 @@ ecdsa==0.11
 mock==1.0.1
 paramiko==1.12.2
 pycrypto==2.6.1
-wsgiref==0.1.2
 zope.interface==4.1.0
