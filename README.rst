@@ -22,7 +22,7 @@ Requirements
 
 octothorpe depends only on Twisted, and is developed against the
 latest release version (currently 13.2.0).  Twisted is declared as
-a dependency in `setup.py`.
+a dependency in ``setup.py``.
 
 Development
 -----------
