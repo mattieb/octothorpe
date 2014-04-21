@@ -15,7 +15,10 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 
 setup(
@@ -34,6 +37,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Topic :: Communications :: Telephony',
     ],
+    install_requires=['Twisted'],
 )
 
 
