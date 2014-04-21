@@ -11,4 +11,5 @@ dist
 include
 lib
 share
+octothorpe.egg-info
 vagrant_ansible_inventory_default
