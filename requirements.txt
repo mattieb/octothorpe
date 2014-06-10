@@ -1,4 +1,4 @@
-Twisted==13.2.0
-ansible==1.5.5
+Twisted==14.0.0
+ansible==1.6.3
 coverage==3.7.1
 mock==1.0.1
