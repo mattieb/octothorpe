@@ -8,8 +8,7 @@
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "centos65"
-  config.vm.box_url = "http://developer.nrel.gov/downloads/vagrant-boxes/CentOS-6.5-x86_64-v20140311.box"
+  config.vm.box = "nrel/CentOS-6.5-x86_64"
 
   # You can attach softphones via this network.
   config.vm.network :private_network, ip: "172.20.64.100"
