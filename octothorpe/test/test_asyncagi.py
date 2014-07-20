@@ -357,4 +357,37 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
         self.assertEqual(len(playbackFailed.mock_calls), 1)
 
 
+    def test_AGIExecPlaybackBackground(self):
+        """Successfully execute Playback in background mode"""
+
+        channel = self._spawnChannel()
+        d = channel.sendAGIExecPlayback('hello-world', background=True)
+
+        message = disassembleMessage(self.transport.value())
+        self.assertEqual(message['action'], 'AGI')
+        self.assertIn('actionid', message)
+        self.assertEqual(message['command'], 'EXEC Background hello-world')
+        self.assertIn('commandid', message)
+
+        cbSuccess = Mock()
+        d.addCallback(cbSuccess)
+
+        self.protocol.dataReceived(
+            'Response: Success\r\n'
+            'ActionID: ' + message['actionid'] + '\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(cbSuccess.mock_calls), 0)
+
+        self.protocol.dataReceived(
+            'Event: AsyncAGI\r\n'
+            'SubEvent: Exec\r\n'
+            'Channel: Foo/202-0\r\n'
+            'CommandID: ' + message['commandid'] + '\r\n'
+            'Result: ' + quote('200 result=48\n') + '\r\n'
+            '\r\n'
+        )
+        cbSuccess.assert_called_once_with(48)
+
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

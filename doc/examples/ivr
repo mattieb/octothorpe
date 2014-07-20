@@ -56,32 +56,12 @@ class AnswererChannel(AsyncAGIChannel):
 
 
     @inlineCallbacks
-    def playback(self, sounds, background=False):
-        if background:
-            verb = 'Background'
-        else:
-            verb = 'Playback'
-        print verb, sounds
-        result = yield self.sendAGI('EXEC ' + verb + ' ' + sounds)
-
-        # Playback returns 0 on success.  Background may return 0 or
-        # the ASCII code point for a DTMF digit.
-
-        if (result[0] != 0 and 
-            (result[0] in range(256) and
-             chr(result[0]) not in '0123456789ABCD#*')):
-            print 'Hanging up due to exception'
-            yield self.sendAGI('HANGUP')
-            raise Exception(result)
-
-
-    @inlineCallbacks
     def handleCall(self):
-        self.playback('silence/1')
+        self.sendAGIExecPlayback('silence/1')
 
         # Get a password first.  Loop until we get it successfully.
 
-        self.playback('agent-pass', background=True)
+        self.sendAGIExecPlayback('agent-pass', background=True)
 
         while True:
             print 'Capturing password'
@@ -90,14 +70,14 @@ class AnswererChannel(AsyncAGIChannel):
             print 'Captured:', digits
             if digits == "12345":
                 break
-            self.playback('auth-incorrect', background=True)
+            self.sendAGIExecPlayback('auth-incorrect', background=True)
 
-        self.playback('auth-thankyou')
+        self.sendAGIExecPlayback('auth-thankyou')
 
         # Main menu
 
         while True:
-            self.playback(
+            self.sendAGIExecPlayback(
                 'silence/1&'
                 'vm-press&digits/1&dir-multi2&pbx-transfer&'
                 'silence/1&'
@@ -110,24 +90,25 @@ class AnswererChannel(AsyncAGIChannel):
 
             print 'Captured:', digit
             if digit == "1":
-                self.playback('vm-enter-num-to-call', background=True)
+                self.sendAGIExecPlayback('vm-enter-num-to-call',
+                                         background=True)
 
                 print 'Capturing number to call'
                 number = yield self.captureDTMF(3)
 
-                self.playback('transfer')
+                self.sendAGIExecPlayback('transfer')
                 print 'Dialing:', number
                 result = yield self.sendAGI('EXEC Dial SIP/' + number)
                 if result[0] != -1:
-                    self.playback('followme/sorry')
+                    self.sendAGIExecPlayback('followme/sorry')
 
             elif digit == "2":
                 break
 
             else:
-                self.playback('confbridge-invalid')
+                self.sendAGIExecPlayback('confbridge-invalid')
 
-        self.playback('demo-thanks')
+        self.sendAGIExecPlayback('demo-thanks')
 
         print 'Hanging up'
         result = yield self.sendAGI('HANGUP')

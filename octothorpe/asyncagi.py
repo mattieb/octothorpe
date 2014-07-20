@@ -25,6 +25,12 @@ from octothorpe.channel import Channel
 """AsyncAGI-supporting Asterisk Manager Interface protocol"""
 
 
+# ASCII codes for DTMF digits
+
+DTMF_ASCII_CODES = [48, 49, 50, 51, 52, 53, 54, 55,
+                    56, 57, 65, 66, 67, 68, 35, 42]
+
+
 class AGIException(Exception):
     """AGI exception"""
 
@@ -145,27 +151,33 @@ class AsyncAGIChannel(Channel):
         return d
 
 
-    def _cbPlaybackExeced(self, result):
+    def _cbPlaybackExeced(self, result, background):
         """Called when an AGI EXEC Playback is run.
 
         Returns just the result code to the next callback.
 
         """
         agiResult = result[0]
-        if agiResult != 0:
-            raise PlaybackException(agiResult)
-        return agiResult
+        if agiResult == 0:
+            return agiResult
+        if background and agiResult in DTMF_ASCII_CODES:
+            return agiResult
+        raise PlaybackException(agiResult)
 
 
-    def sendAGIExecPlayback(self, filename):
-        """Queue an AGI EXEC of the Playback application.
+    def sendAGIExecPlayback(self, filename, background=False):
+        """Queue an AGI EXEC of the Playback or Background application.
 
         Returns a Deferred that will fire with the AGI result code (e.g.
-        0) when the Playback application has executed.
+        0, or the ASCII code for the interrupting digit in background
+        mode) when the application has executed.
 
         """
-        d = self.sendAGI('EXEC Playback %s' % filename)
-        d.addCallback(self._cbPlaybackExeced)
+        if background:
+            d = self.sendAGI('EXEC Background %s' % (filename,))
+        else:
+            d = self.sendAGI('EXEC Playback %s' % (filename,))
+        d.addCallback(self._cbPlaybackExeced, background)
         return d
 
 
