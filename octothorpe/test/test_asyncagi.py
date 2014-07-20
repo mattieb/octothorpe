@@ -20,7 +20,7 @@ from twisted.trial import unittest
 from twisted.test import proto_helpers
 
 from octothorpe.asyncagi import AGIException, AsyncAGIProtocol, AsyncAGIChannel
-from octothorpe.asyncagi import PlaybackException, UnknownCommandException
+from octothorpe.asyncagi import ResultException, UnknownCommandException
 from octothorpe.base import ProtocolError
 from octothorpe.test.test_base import disassembleMessage
 
@@ -62,12 +62,12 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
         )
 
 
-    def test_PlaybackExceptionRepr(self):
+    def test_ResultExceptionRepr(self):
         """repr() of a PlaybackException"""
 
         self.assertEqual(
-            repr(PlaybackException(64)),
-            '<PlaybackException result=64>'
+            repr(ResultException(64)),
+            '<ResultException result=64>'
         )
 
 
@@ -397,6 +397,74 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
             '\r\n'
         )
         cbSuccess.assert_called_once_with(48)
+
+
+    def test_AGIHangup(self):
+        """Successfully send an AGI hangup"""
+
+        channel = self._spawnChannel()
+        d = channel.sendAGIHangup()
+
+        message = disassembleMessage(self.transport.value())
+        self.assertEqual(message['action'], 'AGI')
+        self.assertIn('actionid', message)
+        self.assertEqual(message['command'], 'HANGUP')
+        self.assertIn('commandid', message)
+
+        cbSuccess = Mock()
+        d.addCallback(cbSuccess)
+
+        self.protocol.dataReceived(
+            'Response: Success\r\n'
+            'ActionID: ' + message['actionid'] + '\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(cbSuccess.mock_calls), 0)
+
+        self.protocol.dataReceived(
+            'Event: AsyncAGI\r\n'
+            'SubEvent: Exec\r\n'
+            'Channel: Foo/202-0\r\n'
+            'CommandID: ' + message['commandid'] + '\r\n'
+            'Result: ' + quote('200 result=1\n') + '\r\n'
+            '\r\n'
+        )
+        cbSuccess.assert_called_once_with(1)
+
+
+    def test_AGIHangupFailed(self):
+        """Fail to hang up the channel"""
+
+        channel = self._spawnChannel()
+        d = channel.sendAGIHangup()
+
+        message = disassembleMessage(self.transport.value())
+        self.assertEqual(message['action'], 'AGI')
+        self.assertIn('actionid', message)
+        self.assertEqual(message['command'], 'HANGUP')
+        self.assertIn('commandid', message)
+
+        hangupFailed = Mock()
+        d.addErrback(hangupFailed)
+
+        self.protocol.dataReceived(
+            'Response: Success\r\n'
+            'ActionID: ' + message['actionid'] + '\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(hangupFailed.mock_calls), 0)
+
+        self.protocol.dataReceived(
+            'Event: AsyncAGI\r\n'
+            'SubEvent: Exec\r\n'
+            'Channel: Foo/202-0\r\n'
+            'CommandID: ' + message['commandid'] + '\r\n'
+            'Result: '
+            '' + quote('200 result=0\n') + ''
+            '\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(hangupFailed.mock_calls), 1)
 
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

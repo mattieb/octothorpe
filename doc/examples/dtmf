@@ -65,9 +65,7 @@ class AnswererChannel(AsyncAGIChannel):
 
             yield self.sendAGIExecPlayback('digits/%s' % digit)
 
-        result = yield self.sendAGI('HANGUP')
-        if result[0] != 1:
-            raise Exception(result)
+        yield self.sendAGIHangup()
 
 
 class Answerer(AsyncAGIProtocol):

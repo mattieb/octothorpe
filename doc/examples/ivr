@@ -111,9 +111,7 @@ class AnswererChannel(AsyncAGIChannel):
         self.sendAGIExecPlayback('demo-thanks')
 
         print 'Hanging up'
-        result = yield self.sendAGI('HANGUP')
-        if result[0] != 1:
-            raise Exception(result)
+        yield self.sendAGIHangup()
 
 
     def hungUp(self, a, b):

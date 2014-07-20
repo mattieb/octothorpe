@@ -43,15 +43,15 @@ class AGIException(Exception):
         return '<AGIException code=%d message=%r>' % (self.code, self.message)
 
 
-class PlaybackException(Exception):
-    """Playback exception"""
+class ResultException(Exception):
+    """Result exception (i.e. unacceptable)"""
 
     def __init__(self, result):
         self.result = result
 
 
     def __repr__(self):
-        return '<PlaybackException result=%r>' % (self.result,)
+        return '<ResultException result=%r>' % (self.result,)
 
 
 class UnknownCommandException(KeyError):
@@ -151,18 +151,16 @@ class AsyncAGIChannel(Channel):
         return d
 
 
-    def _cbPlaybackExeced(self, result, background):
-        """Called when an AGI EXEC Playback is run.
+    def _checkResult(self, result, acceptable):
+        """Check the result and raise a ResultException if unacceptable.
 
         Returns just the result code to the next callback.
 
         """
         agiResult = result[0]
-        if agiResult == 0:
+        if agiResult in acceptable:
             return agiResult
-        if background and agiResult in DTMF_ASCII_CODES:
-            return agiResult
-        raise PlaybackException(agiResult)
+        raise ResultException(agiResult)
 
 
     def sendAGIExecPlayback(self, filename, background=False):
@@ -175,9 +173,22 @@ class AsyncAGIChannel(Channel):
         """
         if background:
             d = self.sendAGI('EXEC Background %s' % (filename,))
+            d.addCallback(self._checkResult, [0] + DTMF_ASCII_CODES)
         else:
             d = self.sendAGI('EXEC Playback %s' % (filename,))
-        d.addCallback(self._cbPlaybackExeced, background)
+            d.addCallback(self._checkResult, [0])
+        return d
+
+
+    def sendAGIHangup(self):
+        """Queue an AGI HANGUP.
+
+        Returns a Deferred that will fire when the hangup has
+        succeeded.
+
+        """
+        d = self.sendAGI('HANGUP')
+        d.addCallback(self._checkResult, [1])
         return d
 
 
