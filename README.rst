@@ -21,14 +21,14 @@ Requirements
 ------------
 
 octothorpe depends only on Twisted, and is developed against the
-latest release version (currently 13.2.0).  Twisted is declared as
-a dependency in ``setup.py``.
+latest release version.  Twisted is declared as a dependency in
+``setup.py``.
 
 Development
 -----------
 
 ``requirements.txt`` specifies development dependencies, including
-those for running tests.  
+those for running tests.
 
 As mentioned above, you should start by installing all development
 requirements (you're using a `virtualenv <http://www.virtualenv.org/>`__,
