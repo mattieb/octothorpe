@@ -20,7 +20,7 @@ from twisted.trial import unittest
 from twisted.test import proto_helpers
 
 from octothorpe.asyncagi import AGIException, AsyncAGIProtocol, AsyncAGIChannel
-from octothorpe.asyncagi import UnknownCommandException
+from octothorpe.asyncagi import PlaybackException, UnknownCommandException
 from octothorpe.base import ProtocolError
 from octothorpe.test.test_base import disassembleMessage
 
@@ -59,6 +59,15 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
         self.assertEqual(
             repr(AGIException(500, 'foobar')),
             "<AGIException code=500 message='foobar'>"
+        )
+
+
+    def test_PlaybackExceptionRepr(self):
+        """repr() of a PlaybackException"""
+
+        self.assertEqual(
+            repr(PlaybackException(64)),
+            '<PlaybackException result=64>'
         )
 
 
