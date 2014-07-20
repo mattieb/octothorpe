@@ -50,17 +50,14 @@ def _printDict(d):
 class OriginatorChannel(AsyncAGIChannel):
     def start(self):
         print 'Executing hello-world'
-        d = self.sendAGI('EXEC Playback hello-world')
+        d = self.sendAGIExecPlayback('hello-world')
         d.addCallback(self.playbackDone)
 
 
     def playbackDone(self, result):
-        if result[0] == 0:
-            print 'Playback successful, hanging up'
-            d = self.sendAGI('HANGUP')
-            d.addCallback(self.hangupDone)
-        else:
-            raise Exception(result)
+        print 'Playback successful, hanging up'
+        d = self.sendAGI('HANGUP')
+        d.addCallback(self.hangupDone)
 
 
     def hangupDone(self, result):

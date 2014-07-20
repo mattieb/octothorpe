@@ -288,4 +288,73 @@ class AsyncAGIProtocolTestCase(unittest.TestCase):
         self.assertEqual(len(self.flushLoggedErrors(ProtocolError)), 0)
 
 
+    def test_AGIExecPlayback(self):
+        """Successfully execute the Playback command"""
+
+        channel = self._spawnChannel()
+        d = channel.sendAGIExecPlayback('hello-world')
+
+        message = disassembleMessage(self.transport.value())
+        self.assertEqual(message['action'], 'AGI')
+        self.assertIn('actionid', message)
+        self.assertEqual(message['command'], 'EXEC Playback hello-world')
+        self.assertIn('commandid', message)
+
+        cbSuccess = Mock()
+        d.addCallback(cbSuccess)
+
+        self.protocol.dataReceived(
+            'Response: Success\r\n'
+            'ActionID: ' + message['actionid'] + '\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(cbSuccess.mock_calls), 0)
+
+        self.protocol.dataReceived(
+            'Event: AsyncAGI\r\n'
+            'SubEvent: Exec\r\n'
+            'Channel: Foo/202-0\r\n'
+            'CommandID: ' + message['commandid'] + '\r\n'
+            'Result: ' + quote('200 result=0\n') + '\r\n'
+            '\r\n'
+        )
+        cbSuccess.assert_called_once_with(0)
+
+
+    def test_AGIExecPlaybackFailed(self):
+        """Fail to execute the Playback command"""
+
+        channel = self._spawnChannel()
+        d = channel.sendAGIExecPlayback('hello-world')
+
+        message = disassembleMessage(self.transport.value())
+        self.assertEqual(message['action'], 'AGI')
+        self.assertIn('actionid', message)
+        self.assertEqual(message['command'], 'EXEC Playback hello-world')
+        self.assertIn('commandid', message)
+
+        playbackFailed = Mock()
+        d.addErrback(playbackFailed)
+
+        self.protocol.dataReceived(
+            'Response: Success\r\n'
+            'ActionID: ' + message['actionid'] + '\r\n'
+            '\r\n'
+        )
+        self.assertEqual(len(playbackFailed.mock_calls), 0)
+
+        self.protocol.dataReceived(
+            'Event: AsyncAGI\r\n'
+            'SubEvent: Exec\r\n'
+            'Channel: Foo/202-0\r\n'
+            'CommandID: ' + message['commandid'] + '\r\n'
+            'Result: '
+            '' + quote('200 result=-1\n') + ''
+            '\r\n'
+            '\r\n'
+        )
+
+        self.assertEqual(len(playbackFailed.mock_calls), 1)
+
+
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4

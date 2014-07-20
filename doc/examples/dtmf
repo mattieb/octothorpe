@@ -54,9 +54,7 @@ class AnswererChannel(AsyncAGIChannel):
 
     @inlineCallbacks
     def handleCall(self):
-        result = yield self.sendAGI('EXEC Playback beep')
-        if result[0] != 0:
-            raise Exception(result)
+        yield self.sendAGIExecPlayback('beep')
 
         digits = yield self.captureDTMF(5)
         for digit in digits:
@@ -65,9 +63,7 @@ class AnswererChannel(AsyncAGIChannel):
             elif digit == '*':
                 digit = 'star'
 
-            result = yield self.sendAGI('EXEC Playback digits/%s' % digit)
-            if result[0] != 0:
-                raise Exception(result)
+            yield self.sendAGIExecPlayback('digits/%s' % digit)
 
         result = yield self.sendAGI('HANGUP')
         if result[0] != 1:

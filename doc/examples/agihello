@@ -58,7 +58,7 @@ class AnswererChannel(AsyncAGIChannel):
 
         if context == 'default' and extension == '403':
             print 'It is ours, executing hello-world'
-            d = self.sendAGI('EXEC Playback hello-world')
+            d = self.sendAGIExecPlayback('hello-world')
             d.addCallback(self.playbackDone)
 
 
@@ -68,12 +68,9 @@ class AnswererChannel(AsyncAGIChannel):
         # can also do several sendAGI actions and have Asterisk queue
         # them if you wish instead.
 
-        if result[0] == 0:
-            print 'Playback successful, hanging up'
-            d = self.sendAGI('HANGUP')
-            d.addCallback(self.hangupDone)
-        else:
-            raise Exception(result)
+        print 'Playback successful, hanging up'
+        d = self.sendAGI('HANGUP')
+        d.addCallback(self.hangupDone)
 
 
     def hangupDone(self, result):

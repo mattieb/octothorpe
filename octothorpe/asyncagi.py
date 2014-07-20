@@ -37,6 +37,17 @@ class AGIException(Exception):
         return '<AGIException code=%d message=%r>' % (self.code, self.message)
 
 
+class PlaybackException(Exception):
+    """Playback exception"""
+
+    def __init__(self, result):
+        self.result = result
+
+
+    def __repr__(self):
+        return '<PlaybackException result=%r>' % (self.result,)
+
+
 class UnknownCommandException(KeyError):
     """Response to unknown command received"""
 
@@ -110,7 +121,7 @@ class AsyncAGIChannel(Channel):
     def _cbAGIQueued(self, result, commandid):
         """Called when AGI is queued.
 
-        Sets up a deferred result for the eventual AGIExec event.
+        Sets up a deferred result for the eventual AsyncAGI Exec event.
 
         """
         d = self.pendingAGI[commandid] = Deferred()
@@ -120,7 +131,7 @@ class AsyncAGIChannel(Channel):
     def sendAGI(self, command):
         """Queue an AGI command.
 
-        Returns a Deferred that will fire when a Success AGIExec event
+        Returns a Deferred that will fire when the AsyncAGI Exec event
         is received.
 
         """
@@ -131,6 +142,30 @@ class AsyncAGIChannel(Channel):
             'commandid': commandid,
         })
         d.addCallback(self._cbAGIQueued, commandid)
+        return d
+
+
+    def _cbPlaybackExeced(self, result):
+        """Called when an AGI EXEC Playback is run.
+
+        Returns just the result code to the next callback.
+
+        """
+        agiResult = result[0]
+        if agiResult != 0:
+            raise PlaybackException(agiResult)
+        return agiResult
+
+
+    def sendAGIExecPlayback(self, filename):
+        """Queue an AGI EXEC of the Playback application.
+
+        Returns a Deferred that will fire with the AGI result code (e.g.
+        0) when the Playback application has executed.
+
+        """
+        d = self.sendAGI('EXEC Playback %s' % filename)
+        d.addCallback(self._cbPlaybackExeced)
         return d
 
 
