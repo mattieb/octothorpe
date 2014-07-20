@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2014 Matt Behrens <matt@zigg.com>
+# Copyright (c) 2013, 2014 Matt Behrens <matt@zigg.com>
 #
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -23,7 +23,7 @@ except ImportError:
 
 setup(
     name='octothorpe',
-    version='0.4.1',
+    version='0.5',
     description='Asterisk Manager Interface library for the Twisted engine',
     long_description=open('README.rst', 'r').read(),
     author='Matt Behrens',
